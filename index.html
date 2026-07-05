@@ -11,13 +11,13 @@
             border: 1px solid #bbb;
             background: #f6f6f6;
             padding: 12px;
-            max-width: 1200px;
-            min-height: 460px;
+            max-width: 1250px;
+            min-height: 500px;
             white-space: pre-wrap;
             overflow: auto;
         }
         .nota {
-            max-width: 1000px;
+            max-width: 1050px;
             background: #fff7d6;
             border: 1px solid #e1c75a;
             padding: 10px;
@@ -30,12 +30,11 @@
 <h1>Caska Fuel Theft Test</h1>
 
 <div class="nota">
-    Modo prueba: este algoritmo esta configurado para detectar consumos normales como posible ordena.
-    No usar estos umbrales en produccion.
+    Modo prueba hipersensible: detecta consumos normales y ruido como posibles ordenas para validar el flujo.
 </div>
 
 <button onclick="probarApiGeotab()">Probar API Geotab</button>
-<button onclick="buscarAlertasPrueba()">Buscar posibles ordenas de prueba</button>
+<button onclick="buscarAlertasPrueba()">Buscar posibles ordenas con contexto</button>
 <button onclick="limpiarSalida()">Limpiar</button>
 
 <div id="estado">Estado: esperando API de MyGeotab...</div>
@@ -47,13 +46,12 @@ let geotabState = null;
 
 const DIAGNOSTICO_FUEL_UNITS_ID = "DiagnosticFuelUnitsId";
 const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
+const DIAGNOSTICO_VELOCIDAD_ID = "DiagnosticEngineRoadSpeedId";
+const DIAGNOSTICO_RPM_ID = "DiagnosticEngineSpeedId";
 
-/*
-  UMBRALES DE PRUEBA, INTENCIONALMENTE SENSIBLES:
-  La meta es provocar alertas con consumo normal/ruido.
-*/
 const CAIDA_MINIMA_LITROS_PRUEBA = 1.5;
 const VENTANA_MAXIMA_MINUTOS_PRUEBA = 60;
+const MINUTOS_REVISION_REBOTE = 20;
 const LIMITE_ALERTAS_POR_UNIDAD = 10;
 
 function actualizarEstado(texto) {
@@ -110,16 +108,18 @@ function buscarAlertasPrueba() {
     }
 
     limpiarSalida();
-    actualizarEstado("Estado: buscando posibles ordenas de prueba...");
+    actualizarEstado("Estado: buscando posibles ordenas con contexto...");
 
     geotabApi.call(
         "Get",
         { typeName: "Device", resultsLimit: 10 },
         function (devices) {
             escribirSalida("Modo prueba hipersensible activado.");
-            escribirSalida("Diagnostico combustible: " + DIAGNOSTICO_FUEL_UNITS_ID);
-            escribirSalida("Diagnostico ignicion: " + DIAGNOSTICO_IGNICION_ID);
-            escribirSalida("Regla de prueba: caida >= " + CAIDA_MINIMA_LITROS_PRUEBA + " litros en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
+            escribirSalida("Combustible: " + DIAGNOSTICO_FUEL_UNITS_ID);
+            escribirSalida("Ignicion: " + DIAGNOSTICO_IGNICION_ID);
+            escribirSalida("Velocidad: " + DIAGNOSTICO_VELOCIDAD_ID);
+            escribirSalida("RPM: " + DIAGNOSTICO_RPM_ID);
+            escribirSalida("Regla: caida >= " + CAIDA_MINIMA_LITROS_PRUEBA + " litros en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
             escribirSalida("");
 
             consultarSiguienteUnidad(devices, 0);
@@ -134,7 +134,7 @@ function buscarAlertasPrueba() {
 
 function consultarSiguienteUnidad(devices, index) {
     if (index >= devices.length) {
-        actualizarEstado("Estado: busqueda de alertas terminada");
+        actualizarEstado("Estado: busqueda con contexto terminada");
         return;
     }
 
@@ -145,11 +145,15 @@ function consultarSiguienteUnidad(devices, index) {
     escribirSalida("========================================");
     escribirSalida("Unidad: " + (device.name || "Sin nombre") + " | id: " + device.id);
 
-    consultarStatusData(device, DIAGNOSTICO_FUEL_UNITS_ID, hace7Dias, ahora, 500, function (fuelData) {
-        consultarStatusData(device, DIAGNOSTICO_IGNICION_ID, hace7Dias, ahora, 500, function (ignitionData) {
-            analizarUnidad(device, fuelData, ignitionData);
-            escribirSalida("");
-            consultarSiguienteUnidad(devices, index + 1);
+    consultarStatusData(device, DIAGNOSTICO_FUEL_UNITS_ID, hace7Dias, ahora, 700, function (fuelData) {
+        consultarStatusData(device, DIAGNOSTICO_IGNICION_ID, hace7Dias, ahora, 700, function (ignitionData) {
+            consultarStatusData(device, DIAGNOSTICO_VELOCIDAD_ID, hace7Dias, ahora, 700, function (speedData) {
+                consultarStatusData(device, DIAGNOSTICO_RPM_ID, hace7Dias, ahora, 700, function (rpmData) {
+                    analizarUnidad(device, fuelData, ignitionData, speedData, rpmData);
+                    escribirSalida("");
+                    consultarSiguienteUnidad(devices, index + 1);
+                });
+            });
         });
     });
 }
@@ -171,7 +175,6 @@ function consultarStatusData(device, diagnosticId, desde, hasta, limite, callbac
             datos.sort(function (a, b) {
                 return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
             });
-
             callback(datos);
         },
         function (error) {
@@ -182,16 +185,18 @@ function consultarStatusData(device, diagnosticId, desde, hasta, limite, callbac
     );
 }
 
-function analizarUnidad(device, fuelData, ignitionData) {
+function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
     escribirSalida("Lecturas FuelUnits: " + fuelData.length);
     escribirSalida("Lecturas Ignicion: " + ignitionData.length);
+    escribirSalida("Lecturas Velocidad: " + speedData.length);
+    escribirSalida("Lecturas RPM: " + rpmData.length);
 
     if (fuelData.length < 2) {
         escribirSalida("Sin suficientes lecturas de combustible para analizar.");
         return;
     }
 
-    let alertas = [];
+    const alertas = [];
 
     for (let i = 1; i < fuelData.length; i++) {
         const anterior = fuelData[i - 1];
@@ -205,10 +210,16 @@ function analizarUnidad(device, fuelData, ignitionData) {
         const caida = litrosAntes - litrosDespues;
         const minutos = diferenciaMinutos(anterior.dateTime, actual.dateTime);
 
-        if (
-            caida >= CAIDA_MINIMA_LITROS_PRUEBA &&
-            minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA
-        ) {
+        if (caida >= CAIDA_MINIMA_LITROS_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
+            const contexto = construirContextoAlerta(
+                anterior,
+                actual,
+                fuelData,
+                ignitionData,
+                speedData,
+                rpmData
+            );
+
             alertas.push({
                 unidad: device.name || device.id,
                 desdeFecha: anterior.dateTime,
@@ -217,7 +228,7 @@ function analizarUnidad(device, fuelData, ignitionData) {
                 litrosDespues: litrosDespues,
                 caida: caida,
                 minutos: minutos,
-                ignicion: obtenerIgnicionCercana(ignitionData, actual.dateTime)
+                contexto: contexto
             });
         }
     }
@@ -232,14 +243,19 @@ function analizarUnidad(device, fuelData, ignitionData) {
     alertas.slice(0, LIMITE_ALERTAS_POR_UNIDAD).forEach(function (alerta, index) {
         escribirSalida("");
         escribirSalida("ALERTA #" + (index + 1));
-        escribirSalida("Posible ordena de prueba en unidad " + alerta.unidad);
+        escribirSalida("Unidad: " + alerta.unidad);
+        escribirSalida("Clasificacion: " + alerta.contexto.clasificacion);
+        escribirSalida("Motivo: " + alerta.contexto.motivo);
         escribirSalida("Caida: " + alerta.caida.toFixed(2) + " litros");
         escribirSalida("De: " + alerta.litrosAntes + " litros");
         escribirSalida("A: " + alerta.litrosDespues + " litros");
         escribirSalida("Ventana: " + alerta.minutos.toFixed(1) + " minutos");
         escribirSalida("Desde: " + alerta.desdeFecha);
         escribirSalida("Hasta: " + alerta.hastaFecha);
-        escribirSalida("Ignicion cercana: " + describirIgnicion(alerta.ignicion));
+        escribirSalida("Ignicion estimada durante intervalo: " + alerta.contexto.estadoIgnicion);
+        escribirSalida("Velocidad max/prom: " + alerta.contexto.velocidadMax.toFixed(1) + " / " + alerta.contexto.velocidadProm.toFixed(1));
+        escribirSalida("RPM max/prom: " + alerta.contexto.rpmMax.toFixed(1) + " / " + alerta.contexto.rpmProm.toFixed(1));
+        escribirSalida("Rebote posterior: " + alerta.contexto.reboteTexto);
     });
 
     if (alertas.length > LIMITE_ALERTAS_POR_UNIDAD) {
@@ -248,40 +264,156 @@ function analizarUnidad(device, fuelData, ignitionData) {
     }
 }
 
-function diferenciaMinutos(fechaA, fechaB) {
-    return Math.abs(new Date(fechaB).getTime() - new Date(fechaA).getTime()) / 60000;
+function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData, speedData, rpmData) {
+    const desde = new Date(fuelAntes.dateTime);
+    const hasta = new Date(fuelDespues.dateTime);
+
+    const ignicionIntervalo = filtrarPorIntervalo(ignitionData, desde, hasta);
+    const velocidadIntervalo = filtrarPorIntervalo(speedData, desde, hasta);
+    const rpmIntervalo = filtrarPorIntervalo(rpmData, desde, hasta);
+
+    const estadoIgnicion = estimarEstadoIgnicion(ignitionData, desde, hasta);
+    const velocidad = estadisticasNumericas(velocidadIntervalo);
+    const rpm = estadisticasNumericas(rpmIntervalo);
+
+    const rebote = detectarRebote(fuelDespues, fuelData);
+
+    return clasificarAlerta({
+        estadoIgnicion: estadoIgnicion,
+        velocidadMax: velocidad.max,
+        velocidadProm: velocidad.prom,
+        rpmMax: rpm.max,
+        rpmProm: rpm.prom,
+        rebote: rebote
+    });
 }
 
-function obtenerIgnicionCercana(ignitionData, fechaObjetivo) {
-    if (!ignitionData || ignitionData.length === 0) return null;
+function clasificarAlerta(contexto) {
+    let clasificacion = "Sospechosa";
+    let motivo = "Caida de combustible sin suficiente explicacion por movimiento o rebote.";
 
-    const objetivoMs = new Date(fechaObjetivo).getTime();
-    let mejor = null;
-    let mejorDistancia = Infinity;
+    if (contexto.rebote.hayRebote) {
+        clasificacion = "Probable ruido de sensor";
+        motivo = "El combustible se recupero despues de la caida dentro de la ventana de revision.";
+    } else if (contexto.velocidadMax > 5 || contexto.rpmMax > 900) {
+        clasificacion = "Probable consumo normal";
+        motivo = "Hay velocidad o RPM durante el intervalo, compatible con uso normal.";
+    } else if (contexto.estadoIgnicion === "apagada") {
+        clasificacion = "Mas sospechosa";
+        motivo = "La caida parece ocurrir con ignicion apagada y sin recuperacion posterior.";
+    } else if (contexto.estadoIgnicion === "encendida") {
+        clasificacion = "Revisar";
+        motivo = "Ignicion encendida, pero sin suficiente velocidad/RPM para explicar la caida.";
+    }
+
+    return {
+        clasificacion: clasificacion,
+        motivo: motivo,
+        estadoIgnicion: contexto.estadoIgnicion,
+        velocidadMax: contexto.velocidadMax,
+        velocidadProm: contexto.velocidadProm,
+        rpmMax: contexto.rpmMax,
+        rpmProm: contexto.rpmProm,
+        reboteTexto: contexto.rebote.texto
+    };
+}
+
+function filtrarPorIntervalo(datos, desde, hasta) {
+    return datos.filter(function (dato) {
+        const fecha = new Date(dato.dateTime);
+        return fecha >= desde && fecha <= hasta;
+    });
+}
+
+function estadisticasNumericas(datos) {
+    const valores = datos
+        .map(function (dato) { return Number(dato.data); })
+        .filter(function (valor) { return !isNaN(valor); });
+
+    if (valores.length === 0) {
+        return { max: 0, prom: 0 };
+    }
+
+    const suma = valores.reduce(function (acc, valor) { return acc + valor; }, 0);
+    const max = Math.max.apply(null, valores);
+
+    return {
+        max: max,
+        prom: suma / valores.length
+    };
+}
+
+function estimarEstadoIgnicion(ignitionData, desde, hasta) {
+    if (!ignitionData || ignitionData.length === 0) {
+        return "sin dato";
+    }
+
+    let ultimoAntes = null;
+    let eventosDentro = [];
 
     ignitionData.forEach(function (dato) {
-        const distancia = Math.abs(new Date(dato.dateTime).getTime() - objetivoMs);
-        if (distancia < mejorDistancia) {
-            mejor = dato;
-            mejorDistancia = distancia;
+        const fecha = new Date(dato.dateTime);
+
+        if (fecha <= desde) {
+            if (!ultimoAntes || fecha > new Date(ultimoAntes.dateTime)) {
+                ultimoAntes = dato;
+            }
+        }
+
+        if (fecha >= desde && fecha <= hasta) {
+            eventosDentro.push(dato);
         }
     });
 
-    return mejor;
+    if (eventosDentro.length > 0) {
+        const ultimoDentro = eventosDentro[eventosDentro.length - 1];
+        return Number(ultimoDentro.data) === 1 ? "encendida" : "apagada";
+    }
+
+    if (ultimoAntes) {
+        return Number(ultimoAntes.data) === 1 ? "encendida" : "apagada";
+    }
+
+    return "sin dato";
 }
 
-function describirIgnicion(dato) {
-    if (!dato) return "sin dato";
+function detectarRebote(fuelDespues, fuelData) {
+    const fechaCaida = new Date(fuelDespues.dateTime);
+    const nivelDespues = Number(fuelDespues.data);
+    const limite = new Date(fechaCaida.getTime() + MINUTOS_REVISION_REBOTE * 60000);
 
-    if (Number(dato.data) === 1) {
-        return "encendida en " + dato.dateTime;
+    const posteriores = fuelData.filter(function (dato) {
+        const fecha = new Date(dato.dateTime);
+        return fecha > fechaCaida && fecha <= limite;
+    });
+
+    let maxPosterior = nivelDespues;
+
+    posteriores.forEach(function (dato) {
+        const valor = Number(dato.data);
+        if (!isNaN(valor) && valor > maxPosterior) {
+            maxPosterior = valor;
+        }
+    });
+
+    const recuperacion = maxPosterior - nivelDespues;
+    const hayRebote = recuperacion >= 1.0;
+
+    if (hayRebote) {
+        return {
+            hayRebote: true,
+            texto: "si, recupero " + recuperacion.toFixed(2) + " litros en " + MINUTOS_REVISION_REBOTE + " min"
+        };
     }
 
-    if (Number(dato.data) === 0) {
-        return "apagada en " + dato.dateTime;
-    }
+    return {
+        hayRebote: false,
+        texto: "no"
+    };
+}
 
-    return dato.data + " en " + dato.dateTime;
+function diferenciaMinutos(fechaA, fechaB) {
+    return Math.abs(new Date(fechaB).getTime() - new Date(fechaA).getTime()) / 60000;
 }
 
 function crearModuloAddIn() {

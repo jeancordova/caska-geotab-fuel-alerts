@@ -54,6 +54,14 @@ const VENTANA_MAXIMA_MINUTOS_PRUEBA = 60;
 const MINUTOS_REVISION_REBOTE = 20;
 const LIMITE_ALERTAS_POR_UNIDAD = 10;
 
+const PRIORIDAD_CLASIFICACION = {
+    "Mas sospechosa": 1,
+    "Sospechosa": 2,
+    "Revisar": 3,
+    "Probable consumo normal": 4,
+    "Probable ruido de sensor": 5
+};
+
 function actualizarEstado(texto) {
     const estado = document.getElementById("estado");
     if (estado) estado.innerText = texto;
@@ -120,6 +128,7 @@ function buscarAlertasPrueba() {
             escribirSalida("Velocidad: " + DIAGNOSTICO_VELOCIDAD_ID);
             escribirSalida("RPM: " + DIAGNOSTICO_RPM_ID);
             escribirSalida("Regla: caida >= " + CAIDA_MINIMA_LITROS_PRUEBA + " litros en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
+            escribirSalida("Orden: prioridad de sospecha y despues caida mas grande.");
             escribirSalida("");
 
             consultarSiguienteUnidad(devices, 0);
@@ -196,7 +205,7 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         return;
     }
 
-    const alertas = [];
+    let alertas = [];
 
     for (let i = 1; i < fuelData.length; i++) {
         const anterior = fuelData[i - 1];
@@ -238,7 +247,10 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         return;
     }
 
+    ordenarAlertasPorPrioridad(alertas);
+
     escribirSalida("ALERTAS DE PRUEBA DETECTADAS: " + alertas.length);
+    escribirResumenClasificaciones(alertas);
 
     alertas.slice(0, LIMITE_ALERTAS_POR_UNIDAD).forEach(function (alerta, index) {
         escribirSalida("");
@@ -262,6 +274,48 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         escribirSalida("");
         escribirSalida("Hay " + (alertas.length - LIMITE_ALERTAS_POR_UNIDAD) + " alertas adicionales no mostradas para esta unidad.");
     }
+}
+
+function ordenarAlertasPorPrioridad(alertas) {
+    alertas.sort(function (a, b) {
+        const prioridadA = PRIORIDAD_CLASIFICACION[a.contexto.clasificacion] || 99;
+        const prioridadB = PRIORIDAD_CLASIFICACION[b.contexto.clasificacion] || 99;
+
+        if (prioridadA !== prioridadB) {
+            return prioridadA - prioridadB;
+        }
+
+        if (b.caida !== a.caida) {
+            return b.caida - a.caida;
+        }
+
+        return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
+    });
+}
+
+function escribirResumenClasificaciones(alertas) {
+    const resumen = {
+        "Mas sospechosa": 0,
+        "Sospechosa": 0,
+        "Revisar": 0,
+        "Probable consumo normal": 0,
+        "Probable ruido de sensor": 0
+    };
+
+    alertas.forEach(function (alerta) {
+        const clasificacion = alerta.contexto.clasificacion;
+        if (resumen[clasificacion] === undefined) {
+            resumen[clasificacion] = 0;
+        }
+        resumen[clasificacion] += 1;
+    });
+
+    escribirSalida("Resumen por clasificacion:");
+    escribirSalida("  Mas sospechosa: " + resumen["Mas sospechosa"]);
+    escribirSalida("  Sospechosa: " + resumen["Sospechosa"]);
+    escribirSalida("  Revisar: " + resumen["Revisar"]);
+    escribirSalida("  Probable consumo normal: " + resumen["Probable consumo normal"]);
+    escribirSalida("  Probable ruido de sensor: " + resumen["Probable ruido de sensor"]);
 }
 
 function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData, speedData, rpmData) {

@@ -41,6 +41,7 @@
 
 <button onclick="probarApiGeotab()">Probar API Geotab</button>
 <button onclick="buscarDiagnosticos()">Buscar diagnósticos combustible/ignición</button>
+<button onclick="consultarLecturasCombustible()">Consultar lecturas de combustible</button>
 <button onclick="limpiarSalida()">Limpiar</button>
 
 <div id="estado">Estado: esperando API de MyGeotab...</div>
@@ -49,6 +50,9 @@
 <script>
 let geotabApi = null;
 let geotabState = null;
+
+const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
+const DIAGNOSTICO_COMBUSTIBLE_ID = "avMiECxLj-06axZ-9EG2JWw";
 
 const PALABRAS_CLAVE = [
     "fuel",
@@ -182,17 +186,144 @@ function buscarDiagnosticos() {
                 escribirSalida("----------------------------------------");
             });
 
-            if (encontrados.length === 0) {
-                escribirSalida("No se encontraron diagnósticos con las palabras clave configuradas.");
-                escribirSalida("Esto no significa que no exista combustible; puede tener otro nombre o requerir otra consulta.");
-            }
-
             actualizarEstado("Estado: diagnóstico terminado");
         },
         function (error) {
             escribirSalida("Error al consultar Diagnostic:");
             escribirSalida(JSON.stringify(error, null, 2));
             actualizarEstado("Estado: error al consultar diagnósticos");
+        }
+    );
+}
+
+function consultarLecturasCombustible() {
+    if (!geotabApi) {
+        actualizarEstado("Estado: API Geotab todavía no disponible");
+        return;
+    }
+
+    limpiarSalida();
+    actualizarEstado("Estado: consultando lecturas reales de combustible...");
+
+    geotabApi.call(
+        "Get",
+        {
+            typeName: "Device",
+            resultsLimit: 10
+        },
+        function (devices) {
+            escribirSalida("Probando diagnóstico de combustible:");
+            escribirSalida("id: " + DIAGNOSTICO_COMBUSTIBLE_ID);
+            escribirSalida("name: Segundo nivel de combustible (lado derecho)");
+            escribirSalida("");
+            escribirSalida("Probando ignición:");
+            escribirSalida("id: " + DIAGNOSTICO_IGNICION_ID);
+            escribirSalida("");
+
+            if (!devices || devices.length === 0) {
+                escribirSalida("No se encontraron activos para probar.");
+                actualizarEstado("Estado: sin activos");
+                return;
+            }
+
+            consultarSiguienteDispositivo(devices, 0);
+        },
+        function (error) {
+            escribirSalida("Error al consultar Device:");
+            escribirSalida(JSON.stringify(error, null, 2));
+            actualizarEstado("Estado: error al cargar activos");
+        }
+    );
+}
+
+function consultarSiguienteDispositivo(devices, index) {
+    if (index >= devices.length) {
+        actualizarEstado("Estado: consulta de lecturas terminada");
+        return;
+    }
+
+    const device = devices[index];
+    const ahora = new Date();
+    const hace24Horas = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+
+    escribirSalida("========================================");
+    escribirSalida("Unidad: " + (device.name || "Sin nombre") + " | id: " + device.id);
+
+    geotabApi.call(
+        "Get",
+        {
+            typeName: "StatusData",
+            search: {
+                deviceSearch: {
+                    id: device.id
+                },
+                diagnosticSearch: {
+                    id: DIAGNOSTICO_COMBUSTIBLE_ID
+                },
+                fromDate: hace24Horas.toISOString(),
+                toDate: ahora.toISOString()
+            },
+            resultsLimit: 10
+        },
+        function (fuelData) {
+            escribirSalida("Lecturas de combustible encontradas: " + fuelData.length);
+
+            fuelData.forEach(function (dato, datoIndex) {
+                escribirSalida(
+                    "Combustible [" + (datoIndex + 1) + "]: " +
+                    "fecha=" + dato.dateTime +
+                    " | data=" + dato.data
+                );
+            });
+
+            consultarIgnicionDispositivo(devices, index, device, hace24Horas, ahora);
+        },
+        function (error) {
+            escribirSalida("Error al consultar combustible para " + (device.name || device.id) + ":");
+            escribirSalida(JSON.stringify(error, null, 2));
+
+            consultarIgnicionDispositivo(devices, index, device, hace24Horas, ahora);
+        }
+    );
+}
+
+function consultarIgnicionDispositivo(devices, index, device, desde, hasta) {
+    geotabApi.call(
+        "Get",
+        {
+            typeName: "StatusData",
+            search: {
+                deviceSearch: {
+                    id: device.id
+                },
+                diagnosticSearch: {
+                    id: DIAGNOSTICO_IGNICION_ID
+                },
+                fromDate: desde.toISOString(),
+                toDate: hasta.toISOString()
+            },
+            resultsLimit: 10
+        },
+        function (ignitionData) {
+            escribirSalida("Lecturas de ignición encontradas: " + ignitionData.length);
+
+            ignitionData.forEach(function (dato, datoIndex) {
+                escribirSalida(
+                    "Ignición [" + (datoIndex + 1) + "]: " +
+                    "fecha=" + dato.dateTime +
+                    " | data=" + dato.data
+                );
+            });
+
+            escribirSalida("");
+            consultarSiguienteDispositivo(devices, index + 1);
+        },
+        function (error) {
+            escribirSalida("Error al consultar ignición para " + (device.name || device.id) + ":");
+            escribirSalida(JSON.stringify(error, null, 2));
+            escribirSalida("");
+
+            consultarSiguienteDispositivo(devices, index + 1);
         }
     );
 }
@@ -223,6 +354,7 @@ function crearModuloAddIn() {
 
 window.probarApiGeotab = probarApiGeotab;
 window.buscarDiagnosticos = buscarDiagnosticos;
+window.consultarLecturasCombustible = consultarLecturasCombustible;
 window.limpiarSalida = limpiarSalida;
 
 geotab.addin.caskaFuelDiagnostics = crearModuloAddIn;

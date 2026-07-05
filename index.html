@@ -7,6 +7,16 @@
         body { font-family: Arial, sans-serif; margin: 18px; }
         button { margin-right: 6px; margin-bottom: 10px; padding: 6px 10px; }
         #estado { margin: 12px 0; font-weight: bold; }
+        #avisoCritico {
+            display: none;
+            max-width: 1250px;
+            margin: 12px 0;
+            padding: 14px;
+            border: 2px solid #b00020;
+            background: #ffe8e8;
+            color: #68000f;
+            font-weight: bold;
+        }
         pre {
             border: 1px solid #bbb;
             background: #f6f6f6;
@@ -30,12 +40,14 @@
 <h1>Caska Fuel Theft Test</h1>
 
 <div class="nota">
-    Modo prueba hipersensible: detecta consumos normales y ruido como posibles ordenas para validar el flujo.
-    El valor de combustible se muestra como unidad reportada por Geotab hasta confirmar su equivalencia exacta.
+    Modo prueba hipersensible: detecta consumos normales y ruido como posibles ordeñas para validar el flujo.
+    El combustible se interpreta como litros porque MyGeotab lo muestra como Nivel de combustible (volumen) en L.
 </div>
 
+<div id="avisoCritico"></div>
+
 <button onclick="probarApiGeotab()">Probar API Geotab</button>
-<button onclick="buscarAlertasPrueba()">Buscar posibles ordenas con contexto</button>
+<button onclick="buscarAlertasPrueba()">Buscar posibles ordeñas con contexto</button>
 <button onclick="limpiarSalida()">Limpiar</button>
 
 <div id="estado">Estado: esperando API de MyGeotab...</div>
@@ -45,12 +57,14 @@
 let geotabApi = null;
 let geotabState = null;
 
+const WEBHOOK_ALERTAS_URL = "";
+
 const DIAGNOSTICO_FUEL_UNITS_ID = "DiagnosticFuelUnitsId";
 const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
 const DIAGNOSTICO_VELOCIDAD_ID = "DiagnosticEngineRoadSpeedId";
 const DIAGNOSTICO_RPM_ID = "DiagnosticEngineSpeedId";
 
-const BAJA_MINIMA_COMBUSTIBLE_PRUEBA = 1.5;
+const BAJA_MINIMA_LITROS_PRUEBA = 1.5;
 const VENTANA_MAXIMA_MINUTOS_PRUEBA = 60;
 const MINUTOS_REVISION_REBOTE = 20;
 const LIMITE_ALERTAS_POR_UNIDAD = 10;
@@ -78,6 +92,25 @@ function escribirSalida(texto) {
 function limpiarSalida() {
     const salida = document.getElementById("salida");
     if (salida) salida.textContent = "";
+    ocultarAvisoCritico();
+}
+
+function mostrarAvisoCritico(alertasCriticas) {
+    const aviso = document.getElementById("avisoCritico");
+    if (!aviso || alertasCriticas.length === 0) return;
+
+    aviso.style.display = "block";
+    aviso.innerText =
+        "ALERTA: se detectaron " + alertasCriticas.length +
+        " posibles ordeñas de alta prioridad. Revisar el detalle abajo.";
+}
+
+function ocultarAvisoCritico() {
+    const aviso = document.getElementById("avisoCritico");
+    if (aviso) {
+        aviso.style.display = "none";
+        aviso.innerText = "";
+    }
 }
 
 function probarApiGeotab() {
@@ -95,11 +128,9 @@ function probarApiGeotab() {
         function (devices) {
             escribirSalida("Conexion correcta con Geotab.");
             escribirSalida("Activos encontrados: " + devices.length);
-
             devices.forEach(function (device, index) {
                 escribirSalida((index + 1) + ". " + (device.name || "Sin nombre") + " | id: " + device.id);
             });
-
             actualizarEstado("Estado: conexion correcta");
         },
         function (error) {
@@ -117,22 +148,22 @@ function buscarAlertasPrueba() {
     }
 
     limpiarSalida();
-    actualizarEstado("Estado: buscando posibles ordenas con contexto...");
+    actualizarEstado("Estado: buscando posibles ordeñas con contexto...");
 
     geotabApi.call(
         "Get",
         { typeName: "Device", resultsLimit: 10 },
         function (devices) {
             escribirSalida("Modo prueba hipersensible activado.");
-            escribirSalida("Combustible candidato: " + DIAGNOSTICO_FUEL_UNITS_ID);
+            escribirSalida("Combustible volumen: " + DIAGNOSTICO_FUEL_UNITS_ID);
             escribirSalida("Ignicion: " + DIAGNOSTICO_IGNICION_ID);
             escribirSalida("Velocidad: " + DIAGNOSTICO_VELOCIDAD_ID);
             escribirSalida("RPM: " + DIAGNOSTICO_RPM_ID);
-            escribirSalida("Regla: baja >= " + BAJA_MINIMA_COMBUSTIBLE_PRUEBA + " unidades reportadas en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
+            escribirSalida("Regla: baja >= " + BAJA_MINIMA_LITROS_PRUEBA + " litros en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
             escribirSalida("Orden: prioridad de sospecha y despues baja mas grande.");
             escribirSalida("");
 
-            consultarSiguienteUnidad(devices, 0);
+            consultarSiguienteUnidad(devices, 0, []);
         },
         function (error) {
             escribirSalida("Error al consultar Device:");
@@ -142,8 +173,13 @@ function buscarAlertasPrueba() {
     );
 }
 
-function consultarSiguienteUnidad(devices, index) {
+function consultarSiguienteUnidad(devices, index, alertasCriticasGlobales) {
     if (index >= devices.length) {
+        if (alertasCriticasGlobales.length > 0) {
+            mostrarAvisoCritico(alertasCriticasGlobales);
+            enviarAlertasPorWebhook(alertasCriticasGlobales);
+        }
+
         actualizarEstado("Estado: busqueda con contexto terminada");
         return;
     }
@@ -159,9 +195,13 @@ function consultarSiguienteUnidad(devices, index) {
         consultarStatusData(device, DIAGNOSTICO_IGNICION_ID, hace7Dias, ahora, 700, function (ignitionData) {
             consultarStatusData(device, DIAGNOSTICO_VELOCIDAD_ID, hace7Dias, ahora, 700, function (speedData) {
                 consultarStatusData(device, DIAGNOSTICO_RPM_ID, hace7Dias, ahora, 700, function (rpmData) {
-                    analizarUnidad(device, fuelData, ignitionData, speedData, rpmData);
+                    const alertasCriticasUnidad = analizarUnidad(device, fuelData, ignitionData, speedData, rpmData);
+                    alertasCriticasUnidad.forEach(function (alerta) {
+                        alertasCriticasGlobales.push(alerta);
+                    });
+
                     escribirSalida("");
-                    consultarSiguienteUnidad(devices, index + 1);
+                    consultarSiguienteUnidad(devices, index + 1, alertasCriticasGlobales);
                 });
             });
         });
@@ -196,14 +236,14 @@ function consultarStatusData(device, diagnosticId, desde, hasta, limite, callbac
 }
 
 function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
-    escribirSalida("Lecturas combustible candidato: " + fuelData.length);
+    escribirSalida("Lecturas combustible volumen: " + fuelData.length);
     escribirSalida("Lecturas Ignicion: " + ignitionData.length);
     escribirSalida("Lecturas Velocidad: " + speedData.length);
     escribirSalida("Lecturas RPM: " + rpmData.length);
 
     if (fuelData.length < 2) {
         escribirSalida("Sin suficientes lecturas de combustible para analizar.");
-        return;
+        return [];
     }
 
     let alertas = [];
@@ -220,7 +260,7 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         const baja = valorAntes - valorDespues;
         const minutos = diferenciaMinutos(anterior.dateTime, actual.dateTime);
 
-        if (baja >= BAJA_MINIMA_COMBUSTIBLE_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
+        if (baja >= BAJA_MINIMA_LITROS_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
             const contexto = construirContextoAlerta(
                 anterior,
                 actual,
@@ -232,6 +272,7 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
 
             alertas.push({
                 unidad: device.name || device.id,
+                deviceId: device.id,
                 desdeFecha: anterior.dateTime,
                 hastaFecha: actual.dateTime,
                 valorAntes: valorAntes,
@@ -245,7 +286,7 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
 
     if (alertas.length === 0) {
         escribirSalida("Sin alertas de prueba detectadas.");
-        return;
+        return [];
     }
 
     ordenarAlertasPorPrioridad(alertas);
@@ -259,9 +300,9 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         escribirSalida("Unidad: " + alerta.unidad);
         escribirSalida("Clasificacion: " + alerta.contexto.clasificacion);
         escribirSalida("Motivo: " + alerta.contexto.motivo);
-        escribirSalida("Baja combustible: " + alerta.baja.toFixed(2) + " unidades reportadas");
-        escribirSalida("Valor antes: " + alerta.valorAntes);
-        escribirSalida("Valor despues: " + alerta.valorDespues);
+        escribirSalida("Baja combustible: " + alerta.baja.toFixed(2) + " L");
+        escribirSalida("Valor antes: " + alerta.valorAntes + " L");
+        escribirSalida("Valor despues: " + alerta.valorDespues + " L");
         escribirSalida("Ventana: " + alerta.minutos.toFixed(1) + " minutos");
         escribirSalida("Desde: " + alerta.desdeFecha);
         escribirSalida("Hasta: " + alerta.hastaFecha);
@@ -275,6 +316,11 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         escribirSalida("");
         escribirSalida("Hay " + (alertas.length - LIMITE_ALERTAS_POR_UNIDAD) + " alertas adicionales no mostradas para esta unidad.");
     }
+
+    return alertas.filter(function (alerta) {
+        return alerta.contexto.clasificacion === "Mas sospechosa" ||
+            alerta.contexto.clasificacion === "Sospechosa";
+    });
 }
 
 function ordenarAlertasPorPrioridad(alertas) {
@@ -282,13 +328,8 @@ function ordenarAlertasPorPrioridad(alertas) {
         const prioridadA = PRIORIDAD_CLASIFICACION[a.contexto.clasificacion] || 99;
         const prioridadB = PRIORIDAD_CLASIFICACION[b.contexto.clasificacion] || 99;
 
-        if (prioridadA !== prioridadB) {
-            return prioridadA - prioridadB;
-        }
-
-        if (b.baja !== a.baja) {
-            return b.baja - a.baja;
-        }
+        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
+        if (b.baja !== a.baja) return b.baja - a.baja;
 
         return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
     });
@@ -305,9 +346,7 @@ function escribirResumenClasificaciones(alertas) {
 
     alertas.forEach(function (alerta) {
         const clasificacion = alerta.contexto.clasificacion;
-        if (resumen[clasificacion] === undefined) {
-            resumen[clasificacion] = 0;
-        }
+        if (resumen[clasificacion] === undefined) resumen[clasificacion] = 0;
         resumen[clasificacion] += 1;
     });
 
@@ -349,7 +388,7 @@ function clasificarAlerta(contexto) {
 
     if (contexto.rebote.hayRebote) {
         clasificacion = "Probable ruido de sensor";
-        motivo = "El valor de combustible se recupero despues de la baja dentro de la ventana de revision.";
+        motivo = "El nivel de combustible se recupero despues de la baja dentro de la ventana de revision.";
     } else if (hayVelocidad || hayRpm) {
         clasificacion = "Probable consumo normal";
         motivo = "Hay velocidad o RPM durante el intervalo, compatible con uso normal.";
@@ -387,12 +426,7 @@ function estadisticasNumericas(datos) {
         .filter(function (valor) { return !isNaN(valor); });
 
     if (valores.length === 0) {
-        return {
-            tieneDatos: false,
-            max: null,
-            prom: null,
-            cantidad: 0
-        };
+        return { tieneDatos: false, max: null, prom: null, cantidad: 0 };
     }
 
     const suma = valores.reduce(function (acc, valor) { return acc + valor; }, 0);
@@ -407,17 +441,12 @@ function estadisticasNumericas(datos) {
 }
 
 function formatearEstadistica(estadistica) {
-    if (!estadistica || !estadistica.tieneDatos) {
-        return "sin datos";
-    }
-
+    if (!estadistica || !estadistica.tieneDatos) return "sin datos";
     return estadistica.max.toFixed(1) + " / " + estadistica.prom.toFixed(1) + " (" + estadistica.cantidad + " lecturas)";
 }
 
 function estimarEstadoIgnicion(ignitionData, desde, hasta) {
-    if (!ignitionData || ignitionData.length === 0) {
-        return "sin dato";
-    }
+    if (!ignitionData || ignitionData.length === 0) return "sin dato";
 
     let ultimoAntes = null;
     let eventosDentro = [];
@@ -426,14 +455,10 @@ function estimarEstadoIgnicion(ignitionData, desde, hasta) {
         const fecha = new Date(dato.dateTime);
 
         if (fecha <= desde) {
-            if (!ultimoAntes || fecha > new Date(ultimoAntes.dateTime)) {
-                ultimoAntes = dato;
-            }
+            if (!ultimoAntes || fecha > new Date(ultimoAntes.dateTime)) ultimoAntes = dato;
         }
 
-        if (fecha >= desde && fecha <= hasta) {
-            eventosDentro.push(dato);
-        }
+        if (fecha >= desde && fecha <= hasta) eventosDentro.push(dato);
     });
 
     if (eventosDentro.length > 0) {
@@ -441,9 +466,7 @@ function estimarEstadoIgnicion(ignitionData, desde, hasta) {
         return Number(ultimoDentro.data) === 1 ? "encendida" : "apagada";
     }
 
-    if (ultimoAntes) {
-        return Number(ultimoAntes.data) === 1 ? "encendida" : "apagada";
-    }
+    if (ultimoAntes) return Number(ultimoAntes.data) === 1 ? "encendida" : "apagada";
 
     return "sin dato";
 }
@@ -462,9 +485,7 @@ function detectarRebote(fuelDespues, fuelData) {
 
     posteriores.forEach(function (dato) {
         const valor = Number(dato.data);
-        if (!isNaN(valor) && valor > maxPosterior) {
-            maxPosterior = valor;
-        }
+        if (!isNaN(valor) && valor > maxPosterior) maxPosterior = valor;
     });
 
     const recuperacion = maxPosterior - valorDespues;
@@ -473,14 +494,27 @@ function detectarRebote(fuelDespues, fuelData) {
     if (hayRebote) {
         return {
             hayRebote: true,
-            texto: "si, recupero " + recuperacion.toFixed(2) + " unidades reportadas en " + MINUTOS_REVISION_REBOTE + " min"
+            texto: "si, recupero " + recuperacion.toFixed(2) + " L en " + MINUTOS_REVISION_REBOTE + " min"
         };
     }
 
-    return {
-        hayRebote: false,
-        texto: "no"
-    };
+    return { hayRebote: false, texto: "no" };
+}
+
+function enviarAlertasPorWebhook(alertas) {
+    if (!WEBHOOK_ALERTAS_URL || alertas.length === 0) return;
+
+    fetch(WEBHOOK_ALERTAS_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            origen: "Caska Fuel Theft Test",
+            fechaEnvio: new Date().toISOString(),
+            alertas: alertas
+        })
+    }).catch(function (error) {
+        console.error("No se pudo enviar alerta al webhook:", error);
+    });
 }
 
 function diferenciaMinutos(fechaA, fechaB) {

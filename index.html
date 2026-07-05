@@ -31,6 +31,7 @@
 
 <div class="nota">
     Modo prueba hipersensible: detecta consumos normales y ruido como posibles ordenas para validar el flujo.
+    El valor de combustible se muestra como unidad reportada por Geotab hasta confirmar su equivalencia exacta.
 </div>
 
 <button onclick="probarApiGeotab()">Probar API Geotab</button>
@@ -49,7 +50,7 @@ const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
 const DIAGNOSTICO_VELOCIDAD_ID = "DiagnosticEngineRoadSpeedId";
 const DIAGNOSTICO_RPM_ID = "DiagnosticEngineSpeedId";
 
-const CAIDA_MINIMA_LITROS_PRUEBA = 1.5;
+const BAJA_MINIMA_COMBUSTIBLE_PRUEBA = 1.5;
 const VENTANA_MAXIMA_MINUTOS_PRUEBA = 60;
 const MINUTOS_REVISION_REBOTE = 20;
 const LIMITE_ALERTAS_POR_UNIDAD = 10;
@@ -123,12 +124,12 @@ function buscarAlertasPrueba() {
         { typeName: "Device", resultsLimit: 10 },
         function (devices) {
             escribirSalida("Modo prueba hipersensible activado.");
-            escribirSalida("Combustible: " + DIAGNOSTICO_FUEL_UNITS_ID);
+            escribirSalida("Combustible candidato: " + DIAGNOSTICO_FUEL_UNITS_ID);
             escribirSalida("Ignicion: " + DIAGNOSTICO_IGNICION_ID);
             escribirSalida("Velocidad: " + DIAGNOSTICO_VELOCIDAD_ID);
             escribirSalida("RPM: " + DIAGNOSTICO_RPM_ID);
-            escribirSalida("Regla: caida >= " + CAIDA_MINIMA_LITROS_PRUEBA + " litros en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
-            escribirSalida("Orden: prioridad de sospecha y despues caida mas grande.");
+            escribirSalida("Regla: baja >= " + BAJA_MINIMA_COMBUSTIBLE_PRUEBA + " unidades reportadas en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
+            escribirSalida("Orden: prioridad de sospecha y despues baja mas grande.");
             escribirSalida("");
 
             consultarSiguienteUnidad(devices, 0);
@@ -195,7 +196,7 @@ function consultarStatusData(device, diagnosticId, desde, hasta, limite, callbac
 }
 
 function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
-    escribirSalida("Lecturas FuelUnits: " + fuelData.length);
+    escribirSalida("Lecturas combustible candidato: " + fuelData.length);
     escribirSalida("Lecturas Ignicion: " + ignitionData.length);
     escribirSalida("Lecturas Velocidad: " + speedData.length);
     escribirSalida("Lecturas RPM: " + rpmData.length);
@@ -211,15 +212,15 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         const anterior = fuelData[i - 1];
         const actual = fuelData[i];
 
-        const litrosAntes = Number(anterior.data);
-        const litrosDespues = Number(actual.data);
+        const valorAntes = Number(anterior.data);
+        const valorDespues = Number(actual.data);
 
-        if (isNaN(litrosAntes) || isNaN(litrosDespues)) continue;
+        if (isNaN(valorAntes) || isNaN(valorDespues)) continue;
 
-        const caida = litrosAntes - litrosDespues;
+        const baja = valorAntes - valorDespues;
         const minutos = diferenciaMinutos(anterior.dateTime, actual.dateTime);
 
-        if (caida >= CAIDA_MINIMA_LITROS_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
+        if (baja >= BAJA_MINIMA_COMBUSTIBLE_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
             const contexto = construirContextoAlerta(
                 anterior,
                 actual,
@@ -233,9 +234,9 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
                 unidad: device.name || device.id,
                 desdeFecha: anterior.dateTime,
                 hastaFecha: actual.dateTime,
-                litrosAntes: litrosAntes,
-                litrosDespues: litrosDespues,
-                caida: caida,
+                valorAntes: valorAntes,
+                valorDespues: valorDespues,
+                baja: baja,
                 minutos: minutos,
                 contexto: contexto
             });
@@ -258,9 +259,9 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         escribirSalida("Unidad: " + alerta.unidad);
         escribirSalida("Clasificacion: " + alerta.contexto.clasificacion);
         escribirSalida("Motivo: " + alerta.contexto.motivo);
-        escribirSalida("Caida: " + alerta.caida.toFixed(2) + " litros");
-        escribirSalida("De: " + alerta.litrosAntes + " litros");
-        escribirSalida("A: " + alerta.litrosDespues + " litros");
+        escribirSalida("Baja combustible: " + alerta.baja.toFixed(2) + " unidades reportadas");
+        escribirSalida("Valor antes: " + alerta.valorAntes);
+        escribirSalida("Valor despues: " + alerta.valorDespues);
         escribirSalida("Ventana: " + alerta.minutos.toFixed(1) + " minutos");
         escribirSalida("Desde: " + alerta.desdeFecha);
         escribirSalida("Hasta: " + alerta.hastaFecha);
@@ -285,8 +286,8 @@ function ordenarAlertasPorPrioridad(alertas) {
             return prioridadA - prioridadB;
         }
 
-        if (b.caida !== a.caida) {
-            return b.caida - a.caida;
+        if (b.baja !== a.baja) {
+            return b.baja - a.baja;
         }
 
         return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
@@ -344,11 +345,11 @@ function clasificarAlerta(contexto) {
     const sinDatosMovimiento = !contexto.velocidad.tieneDatos && !contexto.rpm.tieneDatos;
 
     let clasificacion = "Sospechosa";
-    let motivo = "Caida de combustible sin explicacion clara por movimiento o rebote.";
+    let motivo = "Baja de combustible sin explicacion clara por movimiento o rebote.";
 
     if (contexto.rebote.hayRebote) {
         clasificacion = "Probable ruido de sensor";
-        motivo = "El combustible se recupero despues de la caida dentro de la ventana de revision.";
+        motivo = "El valor de combustible se recupero despues de la baja dentro de la ventana de revision.";
     } else if (hayVelocidad || hayRpm) {
         clasificacion = "Probable consumo normal";
         motivo = "Hay velocidad o RPM durante el intervalo, compatible con uso normal.";
@@ -357,10 +358,10 @@ function clasificarAlerta(contexto) {
         motivo = "Ignicion encendida, pero no hubo datos de velocidad/RPM dentro del intervalo.";
     } else if (contexto.estadoIgnicion === "apagada") {
         clasificacion = "Mas sospechosa";
-        motivo = "La caida parece ocurrir con ignicion apagada y sin recuperacion posterior.";
+        motivo = "La baja parece ocurrir con ignicion apagada y sin recuperacion posterior.";
     } else if (contexto.estadoIgnicion === "encendida") {
         clasificacion = "Revisar";
-        motivo = "Ignicion encendida, pero velocidad/RPM disponibles no explican la caida.";
+        motivo = "Ignicion encendida, pero velocidad/RPM disponibles no explican la baja.";
     }
 
     return {
@@ -448,16 +449,16 @@ function estimarEstadoIgnicion(ignitionData, desde, hasta) {
 }
 
 function detectarRebote(fuelDespues, fuelData) {
-    const fechaCaida = new Date(fuelDespues.dateTime);
-    const nivelDespues = Number(fuelDespues.data);
-    const limite = new Date(fechaCaida.getTime() + MINUTOS_REVISION_REBOTE * 60000);
+    const fechaBaja = new Date(fuelDespues.dateTime);
+    const valorDespues = Number(fuelDespues.data);
+    const limite = new Date(fechaBaja.getTime() + MINUTOS_REVISION_REBOTE * 60000);
 
     const posteriores = fuelData.filter(function (dato) {
         const fecha = new Date(dato.dateTime);
-        return fecha > fechaCaida && fecha <= limite;
+        return fecha > fechaBaja && fecha <= limite;
     });
 
-    let maxPosterior = nivelDespues;
+    let maxPosterior = valorDespues;
 
     posteriores.forEach(function (dato) {
         const valor = Number(dato.data);
@@ -466,13 +467,13 @@ function detectarRebote(fuelDespues, fuelData) {
         }
     });
 
-    const recuperacion = maxPosterior - nivelDespues;
+    const recuperacion = maxPosterior - valorDespues;
     const hayRebote = recuperacion >= 1.0;
 
     if (hayRebote) {
         return {
             hayRebote: true,
-            texto: "si, recupero " + recuperacion.toFixed(2) + " litros en " + MINUTOS_REVISION_REBOTE + " min"
+            texto: "si, recupero " + recuperacion.toFixed(2) + " unidades reportadas en " + MINUTOS_REVISION_REBOTE + " min"
         };
     }
 

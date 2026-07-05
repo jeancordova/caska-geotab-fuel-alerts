@@ -253,8 +253,8 @@ function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
         escribirSalida("Desde: " + alerta.desdeFecha);
         escribirSalida("Hasta: " + alerta.hastaFecha);
         escribirSalida("Ignicion estimada durante intervalo: " + alerta.contexto.estadoIgnicion);
-        escribirSalida("Velocidad max/prom: " + alerta.contexto.velocidadMax.toFixed(1) + " / " + alerta.contexto.velocidadProm.toFixed(1));
-        escribirSalida("RPM max/prom: " + alerta.contexto.rpmMax.toFixed(1) + " / " + alerta.contexto.rpmProm.toFixed(1));
+        escribirSalida("Velocidad max/prom: " + formatearEstadistica(alerta.contexto.velocidad));
+        escribirSalida("RPM max/prom: " + formatearEstadistica(alerta.contexto.rpm));
         escribirSalida("Rebote posterior: " + alerta.contexto.reboteTexto);
     });
 
@@ -268,52 +268,53 @@ function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData,
     const desde = new Date(fuelAntes.dateTime);
     const hasta = new Date(fuelDespues.dateTime);
 
-    const ignicionIntervalo = filtrarPorIntervalo(ignitionData, desde, hasta);
     const velocidadIntervalo = filtrarPorIntervalo(speedData, desde, hasta);
     const rpmIntervalo = filtrarPorIntervalo(rpmData, desde, hasta);
 
     const estadoIgnicion = estimarEstadoIgnicion(ignitionData, desde, hasta);
     const velocidad = estadisticasNumericas(velocidadIntervalo);
     const rpm = estadisticasNumericas(rpmIntervalo);
-
     const rebote = detectarRebote(fuelDespues, fuelData);
 
     return clasificarAlerta({
         estadoIgnicion: estadoIgnicion,
-        velocidadMax: velocidad.max,
-        velocidadProm: velocidad.prom,
-        rpmMax: rpm.max,
-        rpmProm: rpm.prom,
+        velocidad: velocidad,
+        rpm: rpm,
         rebote: rebote
     });
 }
 
 function clasificarAlerta(contexto) {
+    const hayVelocidad = contexto.velocidad.tieneDatos && contexto.velocidad.max > 5;
+    const hayRpm = contexto.rpm.tieneDatos && contexto.rpm.max > 900;
+    const sinDatosMovimiento = !contexto.velocidad.tieneDatos && !contexto.rpm.tieneDatos;
+
     let clasificacion = "Sospechosa";
-    let motivo = "Caida de combustible sin suficiente explicacion por movimiento o rebote.";
+    let motivo = "Caida de combustible sin explicacion clara por movimiento o rebote.";
 
     if (contexto.rebote.hayRebote) {
         clasificacion = "Probable ruido de sensor";
         motivo = "El combustible se recupero despues de la caida dentro de la ventana de revision.";
-    } else if (contexto.velocidadMax > 5 || contexto.rpmMax > 900) {
+    } else if (hayVelocidad || hayRpm) {
         clasificacion = "Probable consumo normal";
         motivo = "Hay velocidad o RPM durante el intervalo, compatible con uso normal.";
+    } else if (sinDatosMovimiento && contexto.estadoIgnicion === "encendida") {
+        clasificacion = "Revisar";
+        motivo = "Ignicion encendida, pero no hubo datos de velocidad/RPM dentro del intervalo.";
     } else if (contexto.estadoIgnicion === "apagada") {
         clasificacion = "Mas sospechosa";
         motivo = "La caida parece ocurrir con ignicion apagada y sin recuperacion posterior.";
     } else if (contexto.estadoIgnicion === "encendida") {
         clasificacion = "Revisar";
-        motivo = "Ignicion encendida, pero sin suficiente velocidad/RPM para explicar la caida.";
+        motivo = "Ignicion encendida, pero velocidad/RPM disponibles no explican la caida.";
     }
 
     return {
         clasificacion: clasificacion,
         motivo: motivo,
         estadoIgnicion: contexto.estadoIgnicion,
-        velocidadMax: contexto.velocidadMax,
-        velocidadProm: contexto.velocidadProm,
-        rpmMax: contexto.rpmMax,
-        rpmProm: contexto.rpmProm,
+        velocidad: contexto.velocidad,
+        rpm: contexto.rpm,
         reboteTexto: contexto.rebote.texto
     };
 }
@@ -331,16 +332,31 @@ function estadisticasNumericas(datos) {
         .filter(function (valor) { return !isNaN(valor); });
 
     if (valores.length === 0) {
-        return { max: 0, prom: 0 };
+        return {
+            tieneDatos: false,
+            max: null,
+            prom: null,
+            cantidad: 0
+        };
     }
 
     const suma = valores.reduce(function (acc, valor) { return acc + valor; }, 0);
     const max = Math.max.apply(null, valores);
 
     return {
+        tieneDatos: true,
         max: max,
-        prom: suma / valores.length
+        prom: suma / valores.length,
+        cantidad: valores.length
     };
+}
+
+function formatearEstadistica(estadistica) {
+    if (!estadistica || !estadistica.tieneDatos) {
+        return "sin datos";
+    }
+
+    return estadistica.max.toFixed(1) + " / " + estadistica.prom.toFixed(1) + " (" + estadistica.cantidad + " lecturas)";
 }
 
 function estimarEstadoIgnicion(ignitionData, desde, hasta) {

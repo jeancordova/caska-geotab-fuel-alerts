@@ -1,0 +1,16 @@
+{
+  "name": "Caska Fuel Diagnostics",
+  "supportEmail": "jeancordova@gmail.com",
+  "version": "1.0.0",
+  "items": [
+    {
+      "url": "https://jeancordova.github.io/caska-geotab-fuel-alerts/index.html?v=1",
+      "path": "/",
+      "menuName": {
+        "en": "Caska Fuel Diagnostics",
+        "es": "Diagnóstico de Combustible Caska"
+      }
+    }
+  ],
+  "isSigned": false
+}

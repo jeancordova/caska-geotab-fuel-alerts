@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Caska Fuel Diagnostics</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 18px;
+        }
+
+        button {
+            margin-right: 6px;
+            margin-bottom: 10px;
+            padding: 6px 10px;
+        }
+
+        #estado {
+            margin: 12px 0;
+            font-weight: bold;
+        }
+
+        pre {
+            border: 1px solid #bbb;
+            background: #f6f6f6;
+            padding: 12px;
+            max-width: 1100px;
+            min-height: 320px;
+            white-space: pre-wrap;
+            overflow: auto;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Caska Fuel Diagnostics</h1>
+
+<p>
+    Herramienta temporal para identificar diagnósticos de combustible e ignición disponibles en MyGeotab.
+</p>
+
+<button onclick="probarApiGeotab()">Probar API Geotab</button>
+<button onclick="buscarDiagnosticos()">Buscar diagnósticos combustible/ignición</button>
+<button onclick="limpiarSalida()">Limpiar</button>
+
+<div id="estado">Estado: esperando API de MyGeotab...</div>
+<pre id="salida"></pre>
+
+<script>
+let geotabApi = null;
+let geotabState = null;
+
+const PALABRAS_CLAVE = [
+    "fuel",
+    "combustible",
+    "gasolina",
+    "diesel",
+    "tank",
+    "tanque",
+    "level",
+    "nivel",
+    "volume",
+    "volumen",
+    "liters",
+    "litres",
+    "litros",
+    "ignition",
+    "ignicion",
+    "ignición",
+    "engine"
+];
+
+function actualizarEstado(texto) {
+    const estado = document.getElementById("estado");
+    if (estado) {
+        estado.innerText = texto;
+    }
+    console.log(texto);
+}
+
+function escribirSalida(texto) {
+    const salida = document.getElementById("salida");
+    if (salida) {
+        salida.textContent += texto + "\n";
+    }
+    console.log(texto);
+}
+
+function limpiarSalida() {
+    const salida = document.getElementById("salida");
+    if (salida) {
+        salida.textContent = "";
+    }
+}
+
+function normalizar(texto) {
+    return (texto || "")
+        .toString()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+}
+
+function contienePalabraClave(diagnostic) {
+    const texto = normalizar([
+        diagnostic.id,
+        diagnostic.name,
+        diagnostic.source && diagnostic.source.name,
+        diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name
+    ].join(" "));
+
+    return PALABRAS_CLAVE.some(function (palabra) {
+        return texto.includes(normalizar(palabra));
+    });
+}
+
+function probarApiGeotab() {
+    if (!geotabApi) {
+        actualizarEstado("Estado: API Geotab todavía no disponible");
+        return;
+    }
+
+    actualizarEstado("Estado: probando conexión con Geotab...");
+
+    geotabApi.call(
+        "Get",
+        {
+            typeName: "Device",
+            resultsLimit: 5
+        },
+        function (devices) {
+            limpiarSalida();
+            escribirSalida("Conexión correcta con Geotab.");
+            escribirSalida("Activos encontrados: " + devices.length);
+
+            devices.forEach(function (device, index) {
+                escribirSalida(
+                    (index + 1) + ". " + (device.name || "Sin nombre") + " | id: " + device.id
+                );
+            });
+
+            actualizarEstado("Estado: conexión correcta");
+        },
+        function (error) {
+            escribirSalida("Error al consultar Device:");
+            escribirSalida(JSON.stringify(error, null, 2));
+            actualizarEstado("Estado: error al probar API");
+        }
+    );
+}
+
+function buscarDiagnosticos() {
+    if (!geotabApi) {
+        actualizarEstado("Estado: API Geotab todavía no disponible");
+        return;
+    }
+
+    limpiarSalida();
+    actualizarEstado("Estado: consultando diagnósticos...");
+
+    geotabApi.call(
+        "Get",
+        {
+            typeName: "Diagnostic",
+            resultsLimit: 10000
+        },
+        function (diagnostics) {
+            const encontrados = diagnostics.filter(contienePalabraClave);
+
+            escribirSalida("Diagnósticos totales recibidos: " + diagnostics.length);
+            escribirSalida("Diagnósticos candidatos encontrados: " + encontrados.length);
+            escribirSalida("");
+
+            encontrados.forEach(function (diagnostic, index) {
+                escribirSalida("[" + (index + 1) + "]");
+                escribirSalida("id: " + diagnostic.id);
+                escribirSalida("name: " + diagnostic.name);
+                escribirSalida("source: " + (diagnostic.source && diagnostic.source.name ? diagnostic.source.name : ""));
+                escribirSalida("unitOfMeasure: " + (diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name ? diagnostic.unitOfMeasure.name : ""));
+                escribirSalida("raw:");
+                escribirSalida(JSON.stringify(diagnostic, null, 2));
+                escribirSalida("----------------------------------------");
+            });
+
+            if (encontrados.length === 0) {
+                escribirSalida("No se encontraron diagnósticos con las palabras clave configuradas.");
+                escribirSalida("Esto no significa que no exista combustible; puede tener otro nombre o requerir otra consulta.");
+            }
+
+            actualizarEstado("Estado: diagnóstico terminado");
+        },
+        function (error) {
+            escribirSalida("Error al consultar Diagnostic:");
+            escribirSalida(JSON.stringify(error, null, 2));
+            actualizarEstado("Estado: error al consultar diagnósticos");
+        }
+    );
+}
+
+function crearModuloAddIn() {
+    return {
+        initialize: function (api, state, callback) {
+            geotabApi = api;
+            geotabState = state;
+
+            actualizarEstado("Estado: API Geotab inicializada");
+
+            callback();
+        },
+
+        focus: function (api, state) {
+            geotabApi = api;
+            geotabState = state;
+
+            actualizarEstado("Estado: Add-In activo");
+        },
+
+        blur: function () {
+            console.log("Blur ejecutado");
+        }
+    };
+}
+
+window.probarApiGeotab = probarApiGeotab;
+window.buscarDiagnosticos = buscarDiagnosticos;
+window.limpiarSalida = limpiarSalida;
+
+geotab.addin.caskaFuelDiagnostics = crearModuloAddIn;
+geotab.addin.caska_fuel_diagnostics = crearModuloAddIn;
+geotab.addin.caskaGeotabFuelAlerts = crearModuloAddIn;
+geotab.addin.caska_geotab_fuel_alerts = crearModuloAddIn;
+
+actualizarEstado("Estado: código cargado, esperando API de MyGeotab...");
+</script>
+
+</body>
+</html>

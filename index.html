@@ -4,28 +4,15 @@
     <meta charset="utf-8">
     <title>Caska Fuel Diagnostics</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 18px;
-        }
-
-        button {
-            margin-right: 6px;
-            margin-bottom: 10px;
-            padding: 6px 10px;
-        }
-
-        #estado {
-            margin: 12px 0;
-            font-weight: bold;
-        }
-
+        body { font-family: Arial, sans-serif; margin: 18px; }
+        button { margin-right: 6px; margin-bottom: 10px; padding: 6px 10px; }
+        #estado { margin: 12px 0; font-weight: bold; }
         pre {
             border: 1px solid #bbb;
             background: #f6f6f6;
             padding: 12px;
-            max-width: 1100px;
-            min-height: 320px;
+            max-width: 1200px;
+            min-height: 420px;
             white-space: pre-wrap;
             overflow: auto;
         }
@@ -35,13 +22,11 @@
 
 <h1>Caska Fuel Diagnostics</h1>
 
-<p>
-    Herramienta temporal para identificar diagnósticos de combustible e ignición disponibles en MyGeotab.
-</p>
+<p>Herramienta temporal para encontrar diagnósticos reales de combustible e ignición en MyGeotab.</p>
 
 <button onclick="probarApiGeotab()">Probar API Geotab</button>
 <button onclick="buscarDiagnosticos()">Buscar diagnósticos combustible/ignición</button>
-<button onclick="consultarLecturasCombustible()">Consultar lecturas de combustible</button>
+<button onclick="escanearStatusData()">Escanear lecturas reales StatusData</button>
 <button onclick="limpiarSalida()">Limpiar</button>
 
 <div id="estado">Estado: esperando API de MyGeotab...</div>
@@ -50,51 +35,30 @@
 <script>
 let geotabApi = null;
 let geotabState = null;
-
-const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
-const DIAGNOSTICO_COMBUSTIBLE_ID = "avMiECxLj-06axZ-9EG2JWw";
+let diagnosticosPorId = {};
 
 const PALABRAS_CLAVE = [
-    "fuel",
-    "combustible",
-    "gasolina",
-    "diesel",
-    "tank",
-    "tanque",
-    "level",
-    "nivel",
-    "volume",
-    "volumen",
-    "liters",
-    "litres",
-    "litros",
-    "ignition",
-    "ignicion",
-    "ignición",
-    "engine"
+    "fuel", "combustible", "gasolina", "diesel",
+    "tank", "tanque", "level", "nivel",
+    "volume", "volumen", "liters", "litres", "litros",
+    "ignition", "ignicion", "ignición", "engine"
 ];
 
 function actualizarEstado(texto) {
     const estado = document.getElementById("estado");
-    if (estado) {
-        estado.innerText = texto;
-    }
+    if (estado) estado.innerText = texto;
     console.log(texto);
 }
 
 function escribirSalida(texto) {
     const salida = document.getElementById("salida");
-    if (salida) {
-        salida.textContent += texto + "\n";
-    }
+    if (salida) salida.textContent += texto + "\n";
     console.log(texto);
 }
 
 function limpiarSalida() {
     const salida = document.getElementById("salida");
-    if (salida) {
-        salida.textContent = "";
-    }
+    if (salida) salida.textContent = "";
 }
 
 function normalizar(texto) {
@@ -105,14 +69,30 @@ function normalizar(texto) {
         .replace(/[\u0300-\u036f]/g, "");
 }
 
-function contienePalabraClave(diagnostic) {
-    const texto = normalizar([
+function obtenerIdReferencia(ref) {
+    if (!ref) return "";
+    if (typeof ref === "string") return ref;
+    return ref.id || "";
+}
+
+function obtenerDiagnosticoDeStatus(statusData) {
+    const id = obtenerIdReferencia(statusData.diagnostic);
+    return diagnosticosPorId[id] || statusData.diagnostic || { id: id, name: "" };
+}
+
+function textoDiagnostico(diagnostic) {
+    return normalizar([
         diagnostic.id,
         diagnostic.name,
         diagnostic.source && diagnostic.source.name,
-        diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name
+        diagnostic.source,
+        diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name,
+        diagnostic.unitOfMeasure
     ].join(" "));
+}
 
+function contienePalabraClave(diagnostic) {
+    const texto = textoDiagnostico(diagnostic);
     return PALABRAS_CLAVE.some(function (palabra) {
         return texto.includes(normalizar(palabra));
     });
@@ -124,23 +104,18 @@ function probarApiGeotab() {
         return;
     }
 
+    limpiarSalida();
     actualizarEstado("Estado: probando conexión con Geotab...");
 
     geotabApi.call(
         "Get",
-        {
-            typeName: "Device",
-            resultsLimit: 5
-        },
+        { typeName: "Device", resultsLimit: 5 },
         function (devices) {
-            limpiarSalida();
             escribirSalida("Conexión correcta con Geotab.");
             escribirSalida("Activos encontrados: " + devices.length);
 
             devices.forEach(function (device, index) {
-                escribirSalida(
-                    (index + 1) + ". " + (device.name || "Sin nombre") + " | id: " + device.id
-                );
+                escribirSalida((index + 1) + ". " + (device.name || "Sin nombre") + " | id: " + device.id);
             });
 
             actualizarEstado("Estado: conexión correcta");
@@ -149,6 +124,25 @@ function probarApiGeotab() {
             escribirSalida("Error al consultar Device:");
             escribirSalida(JSON.stringify(error, null, 2));
             actualizarEstado("Estado: error al probar API");
+        }
+    );
+}
+
+function cargarDiagnosticos(callback) {
+    geotabApi.call(
+        "Get",
+        { typeName: "Diagnostic", resultsLimit: 10000 },
+        function (diagnostics) {
+            diagnosticosPorId = {};
+            diagnostics.forEach(function (diagnostic) {
+                diagnosticosPorId[diagnostic.id] = diagnostic;
+            });
+            callback(diagnostics);
+        },
+        function (error) {
+            escribirSalida("Error al cargar Diagnostic:");
+            escribirSalida(JSON.stringify(error, null, 2));
+            actualizarEstado("Estado: error al cargar diagnósticos");
         }
     );
 }
@@ -162,89 +156,71 @@ function buscarDiagnosticos() {
     limpiarSalida();
     actualizarEstado("Estado: consultando diagnósticos...");
 
-    geotabApi.call(
-        "Get",
-        {
-            typeName: "Diagnostic",
-            resultsLimit: 10000
-        },
-        function (diagnostics) {
-            const encontrados = diagnostics.filter(contienePalabraClave);
+    cargarDiagnosticos(function (diagnostics) {
+        const encontrados = diagnostics.filter(contienePalabraClave);
 
-            escribirSalida("Diagnósticos totales recibidos: " + diagnostics.length);
-            escribirSalida("Diagnósticos candidatos encontrados: " + encontrados.length);
-            escribirSalida("");
+        escribirSalida("Diagnósticos totales recibidos: " + diagnostics.length);
+        escribirSalida("Diagnósticos candidatos encontrados: " + encontrados.length);
+        escribirSalida("");
 
-            encontrados.forEach(function (diagnostic, index) {
-                escribirSalida("[" + (index + 1) + "]");
-                escribirSalida("id: " + diagnostic.id);
-                escribirSalida("name: " + diagnostic.name);
-                escribirSalida("source: " + (diagnostic.source && diagnostic.source.name ? diagnostic.source.name : ""));
-                escribirSalida("unitOfMeasure: " + (diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name ? diagnostic.unitOfMeasure.name : ""));
-                escribirSalida("raw:");
-                escribirSalida(JSON.stringify(diagnostic, null, 2));
-                escribirSalida("----------------------------------------");
-            });
+        encontrados.forEach(function (diagnostic, index) {
+            escribirSalida("[" + (index + 1) + "]");
+            escribirSalida("id: " + diagnostic.id);
+            escribirSalida("name: " + diagnostic.name);
+            escribirSalida("source: " + (diagnostic.source && diagnostic.source.name ? diagnostic.source.name : diagnostic.source || ""));
+            escribirSalida("unitOfMeasure: " + (diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name ? diagnostic.unitOfMeasure.name : diagnostic.unitOfMeasure || ""));
+            escribirSalida("----------------------------------------");
+        });
 
-            actualizarEstado("Estado: diagnóstico terminado");
-        },
-        function (error) {
-            escribirSalida("Error al consultar Diagnostic:");
-            escribirSalida(JSON.stringify(error, null, 2));
-            actualizarEstado("Estado: error al consultar diagnósticos");
-        }
-    );
+        actualizarEstado("Estado: diagnóstico terminado");
+    });
 }
 
-function consultarLecturasCombustible() {
+function escanearStatusData() {
     if (!geotabApi) {
         actualizarEstado("Estado: API Geotab todavía no disponible");
         return;
     }
 
     limpiarSalida();
-    actualizarEstado("Estado: consultando lecturas reales de combustible...");
+    actualizarEstado("Estado: cargando diagnósticos y activos...");
 
-    geotabApi.call(
-        "Get",
-        {
-            typeName: "Device",
-            resultsLimit: 10
-        },
-        function (devices) {
-            escribirSalida("Probando diagnóstico de combustible:");
-            escribirSalida("id: " + DIAGNOSTICO_COMBUSTIBLE_ID);
-            escribirSalida("name: Segundo nivel de combustible (lado derecho)");
-            escribirSalida("");
-            escribirSalida("Probando ignición:");
-            escribirSalida("id: " + DIAGNOSTICO_IGNICION_ID);
-            escribirSalida("");
+    cargarDiagnosticos(function () {
+        geotabApi.call(
+            "Get",
+            { typeName: "Device", resultsLimit: 10 },
+            function (devices) {
+                if (!devices || devices.length === 0) {
+                    escribirSalida("No se encontraron activos.");
+                    actualizarEstado("Estado: sin activos");
+                    return;
+                }
 
-            if (!devices || devices.length === 0) {
-                escribirSalida("No se encontraron activos para probar.");
-                actualizarEstado("Estado: sin activos");
-                return;
+                escribirSalida("Escaneando StatusData real de las primeras " + devices.length + " unidades.");
+                escribirSalida("Ventana: últimos 7 días.");
+                escribirSalida("Buscando diagnósticos con palabras: combustible, fuel, nivel, litros, tanque, ignition.");
+                escribirSalida("");
+
+                escanearSiguienteDispositivo(devices, 0);
+            },
+            function (error) {
+                escribirSalida("Error al consultar Device:");
+                escribirSalida(JSON.stringify(error, null, 2));
+                actualizarEstado("Estado: error al cargar activos");
             }
-
-            consultarSiguienteDispositivo(devices, 0);
-        },
-        function (error) {
-            escribirSalida("Error al consultar Device:");
-            escribirSalida(JSON.stringify(error, null, 2));
-            actualizarEstado("Estado: error al cargar activos");
-        }
-    );
+        );
+    });
 }
 
-function consultarSiguienteDispositivo(devices, index) {
+function escanearSiguienteDispositivo(devices, index) {
     if (index >= devices.length) {
-        actualizarEstado("Estado: consulta de lecturas terminada");
+        actualizarEstado("Estado: escaneo StatusData terminado");
         return;
     }
 
     const device = devices[index];
     const ahora = new Date();
-    const hace24Horas = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+    const hace7Dias = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     escribirSalida("========================================");
     escribirSalida("Unidad: " + (device.name || "Sin nombre") + " | id: " + device.id);
@@ -254,76 +230,70 @@ function consultarSiguienteDispositivo(devices, index) {
         {
             typeName: "StatusData",
             search: {
-                deviceSearch: {
-                    id: device.id
-                },
-                diagnosticSearch: {
-                    id: DIAGNOSTICO_COMBUSTIBLE_ID
-                },
-                fromDate: hace24Horas.toISOString(),
+                deviceSearch: { id: device.id },
+                fromDate: hace7Dias.toISOString(),
                 toDate: ahora.toISOString()
             },
-            resultsLimit: 10
+            resultsLimit: 5000
         },
-        function (fuelData) {
-            escribirSalida("Lecturas de combustible encontradas: " + fuelData.length);
+        function (statusData) {
+            escribirSalida("StatusData recibidos: " + statusData.length);
 
-            fuelData.forEach(function (dato, datoIndex) {
-                escribirSalida(
-                    "Combustible [" + (datoIndex + 1) + "]: " +
-                    "fecha=" + dato.dateTime +
-                    " | data=" + dato.data
-                );
+            const resumen = {};
+            statusData.forEach(function (dato) {
+                const diagnostic = obtenerDiagnosticoDeStatus(dato);
+                if (!contienePalabraClave(diagnostic)) return;
+
+                const id = diagnostic.id || obtenerIdReferencia(dato.diagnostic);
+                if (!resumen[id]) {
+                    resumen[id] = {
+                        diagnostic: diagnostic,
+                        count: 0,
+                        samples: []
+                    };
+                }
+
+                resumen[id].count += 1;
+
+                if (resumen[id].samples.length < 5) {
+                    resumen[id].samples.push({
+                        dateTime: dato.dateTime,
+                        data: dato.data
+                    });
+                }
             });
 
-            consultarIgnicionDispositivo(devices, index, device, hace24Horas, ahora);
-        },
-        function (error) {
-            escribirSalida("Error al consultar combustible para " + (device.name || device.id) + ":");
-            escribirSalida(JSON.stringify(error, null, 2));
+            const ids = Object.keys(resumen);
 
-            consultarIgnicionDispositivo(devices, index, device, hace24Horas, ahora);
-        }
-    );
-}
+            if (ids.length === 0) {
+                escribirSalida("No se encontraron lecturas recientes candidatas de combustible/ignición en esta unidad.");
+            } else {
+                escribirSalida("Diagnósticos candidatos con datos reales: " + ids.length);
+                ids.forEach(function (id) {
+                    const item = resumen[id];
+                    const diagnostic = item.diagnostic;
 
-function consultarIgnicionDispositivo(devices, index, device, desde, hasta) {
-    geotabApi.call(
-        "Get",
-        {
-            typeName: "StatusData",
-            search: {
-                deviceSearch: {
-                    id: device.id
-                },
-                diagnosticSearch: {
-                    id: DIAGNOSTICO_IGNICION_ID
-                },
-                fromDate: desde.toISOString(),
-                toDate: hasta.toISOString()
-            },
-            resultsLimit: 10
-        },
-        function (ignitionData) {
-            escribirSalida("Lecturas de ignición encontradas: " + ignitionData.length);
+                    escribirSalida("");
+                    escribirSalida("id: " + id);
+                    escribirSalida("name: " + (diagnostic.name || ""));
+                    escribirSalida("source: " + (diagnostic.source && diagnostic.source.name ? diagnostic.source.name : diagnostic.source || ""));
+                    escribirSalida("unitOfMeasure: " + (diagnostic.unitOfMeasure && diagnostic.unitOfMeasure.name ? diagnostic.unitOfMeasure.name : diagnostic.unitOfMeasure || ""));
+                    escribirSalida("lecturas: " + item.count);
 
-            ignitionData.forEach(function (dato, datoIndex) {
-                escribirSalida(
-                    "Ignición [" + (datoIndex + 1) + "]: " +
-                    "fecha=" + dato.dateTime +
-                    " | data=" + dato.data
-                );
-            });
+                    item.samples.forEach(function (sample, sampleIndex) {
+                        escribirSalida("  muestra " + (sampleIndex + 1) + ": fecha=" + sample.dateTime + " | data=" + sample.data);
+                    });
+                });
+            }
 
             escribirSalida("");
-            consultarSiguienteDispositivo(devices, index + 1);
+            escanearSiguienteDispositivo(devices, index + 1);
         },
         function (error) {
-            escribirSalida("Error al consultar ignición para " + (device.name || device.id) + ":");
+            escribirSalida("Error al consultar StatusData para " + (device.name || device.id) + ":");
             escribirSalida(JSON.stringify(error, null, 2));
             escribirSalida("");
-
-            consultarSiguienteDispositivo(devices, index + 1);
+            escanearSiguienteDispositivo(devices, index + 1);
         }
     );
 }
@@ -333,16 +303,13 @@ function crearModuloAddIn() {
         initialize: function (api, state, callback) {
             geotabApi = api;
             geotabState = state;
-
             actualizarEstado("Estado: API Geotab inicializada");
-
             callback();
         },
 
         focus: function (api, state) {
             geotabApi = api;
             geotabState = state;
-
             actualizarEstado("Estado: Add-In activo");
         },
 
@@ -354,7 +321,7 @@ function crearModuloAddIn() {
 
 window.probarApiGeotab = probarApiGeotab;
 window.buscarDiagnosticos = buscarDiagnosticos;
-window.consultarLecturasCombustible = consultarLecturasCombustible;
+window.escanearStatusData = escanearStatusData;
 window.limpiarSalida = limpiarSalida;
 
 geotab.addin.caskaFuelDiagnostics = crearModuloAddIn;

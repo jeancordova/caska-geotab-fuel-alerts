@@ -1,14 +1,14 @@
 {
-  "name": "Caska Fuel Diagnostics",
+  "name": "Monitor de Nivel de Combustible",
   "supportEmail": "jeancordova@gmail.com",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "items": [
     {
-      "url": "https://jeancordova.github.io/caska-geotab-fuel-alerts/index.html?v=11",
+      "url": "https://jeancordova.github.io/caska-geotab-fuel-alerts/index.html?v=12",
       "path": "/",
       "menuName": {
-        "en": "Caska Fuel Diagnostics",
-        "es": "Diagnóstico de Combustible Caska"
+        "en": "Fuel Level Monitor",
+        "es": "Monitor de Nivel de Combustible"
       }
     }
   ],

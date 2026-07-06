@@ -1,0 +1,384 @@
+html,
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100%;
+  background: #07101c !important;
+  color: #f7fbff !important;
+  font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+}
+
+.caska-app,
+.caska-app * {
+  box-sizing: border-box;
+}
+
+.caska-app {
+  --bg: #07101c;
+  --sidebar: #050b14;
+  --panel: #101b2d;
+  --line: rgba(164, 180, 205, 0.2);
+  --text: #f7fbff;
+  --muted: #a9bad2;
+  --accent: #6f63ff;
+  --accent-2: #12e6a8;
+  --danger: #ff5470;
+
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 72% 0%, rgba(111, 99, 255, 0.28), transparent 34%),
+    linear-gradient(135deg, #07101c 0%, #0c1424 52%, #10113a 100%);
+  color: var(--text);
+}
+
+.caska-sidebar {
+  min-height: 100vh;
+  background: rgba(5, 11, 20, 0.96);
+  border-right: 1px solid var(--line);
+  padding: 28px 22px;
+}
+
+.caska-logoBox {
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 26px;
+}
+
+.caska-logo {
+  width: 190px;
+  max-width: 100%;
+  display: block;
+  border-radius: 6px;
+  background: #2c2c2c;
+}
+
+.caska-nav {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 26px;
+}
+
+.caska-navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  border-radius: 8px;
+  color: #c8d5ea;
+  font-size: 15px;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.caska-navItem.active {
+  background: linear-gradient(135deg, rgba(111, 99, 255, 0.92), rgba(48, 42, 137, 0.92));
+  border-color: rgba(160, 153, 255, 0.35);
+  color: #ffffff;
+}
+
+.caska-system {
+  margin-top: 28px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(16, 27, 45, 0.78);
+}
+
+.caska-systemLabel {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  margin-bottom: 7px;
+}
+
+.caska-systemState {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent-2);
+  font-weight: 900;
+}
+
+.caska-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  box-shadow: 0 0 0 4px rgba(18, 230, 168, 0.14);
+}
+
+.caska-main {
+  min-width: 0;
+  padding: 38px 40px 48px;
+}
+
+.caska-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.caska-kicker {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.caska-title {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.05;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.caska-subtitle {
+  margin: 14px 0 0;
+  color: #b8c9e4;
+  font-size: 16px;
+  max-width: 920px;
+}
+
+.caska-clock {
+  min-width: 220px;
+  white-space: pre-line;
+  text-align: center;
+  padding: 16px 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(10, 18, 31, 0.72);
+  color: #dfe9fb;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.caska-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 22px 0 26px;
+}
+
+.caska-btn {
+  appearance: none;
+  border: 1px solid rgba(150, 166, 205, 0.34);
+  border-radius: 8px;
+  background: rgba(15, 25, 43, 0.86);
+  color: #ffffff;
+  padding: 11px 14px;
+  min-height: 42px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.caska-btnPrimary {
+  background: linear-gradient(135deg, #7468ff, #3b33ad);
+  border-color: rgba(180, 176, 255, 0.42);
+}
+
+.caska-btnDanger {
+  background: rgba(255, 84, 112, 0.14);
+  border-color: rgba(255, 84, 112, 0.5);
+  color: #ffdce3;
+}
+
+.caska-status {
+  color: #b8c9e4;
+  font-size: 14px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.caska-gridMetrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.caska-card,
+.caska-panel {
+  border: 1px solid var(--line);
+  background: rgba(16, 27, 45, 0.78);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+}
+
+.caska-card {
+  padding: 20px;
+  min-height: 128px;
+}
+
+.caska-cardLabel {
+  color: #aebfda;
+  font-size: 13px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+
+.caska-cardValue {
+  font-size: 38px;
+  line-height: 1;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+.caska-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.caska-panelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.caska-panelTitle {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.caska-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(18, 230, 168, 0.12);
+  color: #7fffd2;
+  border: 1px solid rgba(18, 230, 168, 0.28);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.caska-panelBody {
+  padding: 18px 20px 20px;
+}
+
+.caska-alertList {
+  display: grid;
+  gap: 12px;
+  max-height: 480px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.caska-alert {
+  border: 1px solid rgba(255, 84, 112, 0.32);
+  background: rgba(255, 84, 112, 0.08);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.caska-alert.ok {
+  border-color: rgba(18, 230, 168, 0.22);
+  background: rgba(18, 230, 168, 0.06);
+}
+
+.caska-alertTitle {
+  font-size: 15px;
+  font-weight: 900;
+  margin-bottom: 8px;
+  color: #ffffff;
+}
+
+.caska-alertMeta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  color: #c5d4ea;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.caska-form {
+  display: grid;
+  gap: 14px;
+}
+
+.caska-field label {
+  display: block;
+  color: #b9c9e2;
+  font-size: 13px;
+  font-weight: 900;
+  margin-bottom: 7px;
+}
+
+.caska-input,
+.caska-textarea {
+  width: 100%;
+  border: 1px solid rgba(150, 166, 205, 0.28);
+  border-radius: 8px;
+  background: rgba(5, 11, 20, 0.86);
+  color: #ffffff;
+  padding: 11px 12px;
+  font: inherit;
+  outline: none;
+}
+
+.caska-textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.caska-help {
+  margin-top: 8px;
+  color: #8fa2bf;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.caska-log {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(4, 9, 16, 0.88);
+  padding: 14px;
+  color: #dce7f8;
+  font: 12px/1.55 Consolas, "Courier New", monospace;
+  min-height: 180px;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1120px) {
+  .caska-app {
+    grid-template-columns: 1fr;
+  }
+
+  .caska-sidebar {
+    min-height: auto;
+  }
+
+  .caska-content,
+  .caska-gridMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .caska-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .caska-clock {
+    min-width: 0;
+    width: 100%;
+  }
+}

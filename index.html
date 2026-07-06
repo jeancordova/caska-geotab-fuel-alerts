@@ -2,93 +2,445 @@
 <html lang="es">
 <head>
     <meta charset="utf-8">
-    <title>Caska Fuel Theft Monitor</title>
+    <title>Monitor de Nivel de Combustible</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 18px; }
-        button { margin-right: 6px; margin-bottom: 10px; padding: 6px 10px; }
-        label { display: block; margin-top: 8px; font-weight: bold; }
-        input, textarea {
-            width: 100%;
-            max-width: 900px;
-            box-sizing: border-box;
-            padding: 7px;
+        :root {
+            --bg: #050b14;
+            --panel: #0c1524;
+            --panel2: #111d31;
+            --line: #22314d;
+            --text: #f7f9ff;
+            --muted: #9fb0cb;
+            --soft: #c8d5ee;
+            --accent: #6f61ff;
+            --accent2: #1dd6a6;
+            --warn: #ffcc66;
+            --danger: #ff4d6d;
+            --blue: #45a3ff;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: radial-gradient(circle at top right, #182164 0, #07101d 34%, #040912 100%);
+            color: var(--text);
+        }
+
+        .app {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--line);
+            background: rgba(5, 11, 20, 0.92);
+            padding: 28px 20px;
+        }
+
+        .logoBox {
+            padding: 8px 0 28px;
+            border-bottom: 1px solid var(--line);
+            margin-bottom: 26px;
+        }
+
+        .logoBox img {
+            width: 210px;
+            max-width: 100%;
+            display: block;
+        }
+
+        .navItem {
+            padding: 14px 16px;
+            border-radius: 8px;
+            color: var(--soft);
+            font-weight: 700;
+            margin-bottom: 10px;
+            border: 1px solid transparent;
+        }
+
+        .navItem.active {
+            background: linear-gradient(135deg, rgba(111, 97, 255, 0.92), rgba(38, 53, 130, 0.9));
+            border-color: rgba(161, 151, 255, 0.45);
+            color: #fff;
+        }
+
+        .systemBox {
+            margin-top: 28px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 14px;
+            background: rgba(17, 29, 49, 0.75);
+        }
+
+        .systemLabel {
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .systemStatus {
+            color: var(--accent2);
+            font-weight: 800;
+        }
+
+        .main {
+            padding: 34px 36px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 28px;
+        }
+
+        .eyebrow {
+            color: #8d7dff;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-size: 13px;
+            font-weight: 900;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 44px;
+            line-height: 1.05;
+        }
+
+        .subtitle {
+            margin-top: 14px;
+            color: var(--muted);
+            font-size: 16px;
+        }
+
+        .clockCard {
+            min-width: 260px;
+            background: rgba(13, 23, 40, 0.9);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 18px 22px;
+            text-align: center;
+        }
+
+        .clockDate {
+            font-weight: 900;
+            font-size: 18px;
+        }
+
+        .clockTime {
+            color: var(--soft);
+            font-size: 22px;
             margin-top: 4px;
         }
-        textarea { min-height: 70px; }
-        #estado { margin: 12px 0; font-weight: bold; }
-        #avisoCritico {
-            display: none;
-            max-width: 1250px;
-            margin: 12px 0;
-            padding: 14px;
-            border: 2px solid #b00020;
-            background: #ffe8e8;
-            color: #68000f;
-            font-weight: bold;
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 22px;
         }
-        pre {
-            border: 1px solid #bbb;
-            background: #f6f6f6;
-            padding: 12px;
-            max-width: 1250px;
-            min-height: 420px;
-            white-space: pre-wrap;
+
+        button {
+            border: 1px solid rgba(127, 142, 255, 0.45);
+            background: rgba(18, 28, 53, 0.9);
+            color: #fff;
+            border-radius: 8px;
+            padding: 11px 16px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, #6f61ff, #3531a3);
+        }
+
+        button.stop {
+            border-color: rgba(255, 77, 109, 0.45);
+            color: #ffd7de;
+        }
+
+        button:hover {
+            filter: brightness(1.12);
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(170px, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .metricCard {
+            background: rgba(17, 29, 49, 0.88);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 18px;
+            min-height: 128px;
+        }
+
+        .metricTop {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--muted);
+            font-weight: 900;
+            font-size: 13px;
+            text-transform: uppercase;
+        }
+
+        .metricIcon {
+            width: 42px;
+            height: 42px;
+            border-radius: 10px;
+            display: grid;
+            place-items: center;
+            background: rgba(111, 97, 255, 0.22);
+            color: #bcb5ff;
+            font-weight: 900;
+        }
+
+        .metricValue {
+            font-size: 38px;
+            font-weight: 900;
+            margin-top: 22px;
+        }
+
+        .contentGrid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 18px;
+        }
+
+        .panel {
+            background: rgba(12, 21, 36, 0.9);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        .panelTitle {
+            font-size: 20px;
+            font-weight: 900;
+            margin-bottom: 14px;
+        }
+
+        .alertList {
+            display: grid;
+            gap: 12px;
+            max-height: 520px;
             overflow: auto;
+            padding-right: 4px;
         }
-        .nota {
-            max-width: 1050px;
-            background: #fff7d6;
-            border: 1px solid #e1c75a;
+
+        .alertCard {
+            border: 1px solid var(--line);
+            background: rgba(17, 29, 49, 0.82);
+            border-radius: 10px;
+            padding: 14px;
+        }
+
+        .alertHead {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .alertUnit {
+            font-weight: 900;
+            font-size: 17px;
+        }
+
+        .badge {
+            border-radius: 999px;
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .badge.high { background: rgba(255, 77, 109, 0.17); color: #ffb3c0; border: 1px solid rgba(255, 77, 109, 0.5); }
+        .badge.review { background: rgba(255, 204, 102, 0.15); color: #ffe0a1; border: 1px solid rgba(255, 204, 102, 0.5); }
+        .badge.normal { background: rgba(69, 163, 255, 0.15); color: #b9dcff; border: 1px solid rgba(69, 163, 255, 0.5); }
+        .badge.noise { background: rgba(29, 214, 166, 0.15); color: #a8ffe7; border: 1px solid rgba(29, 214, 166, 0.5); }
+
+        .alertMeta {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.55;
+        }
+
+        .alertDrop {
+            font-size: 28px;
+            font-weight: 900;
+            color: #fff;
+            margin: 8px 0;
+        }
+
+        .configRow {
+            display: grid;
+            gap: 10px;
+        }
+
+        textarea, input {
+            width: 100%;
+            background: #07101d;
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 8px;
             padding: 10px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        textarea {
+            min-height: 74px;
+        }
+
+        label {
+            color: var(--soft);
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+        .statusLine {
+            color: var(--muted);
+            font-size: 13px;
             margin-bottom: 12px;
         }
-        .panel {
-            max-width: 1050px;
-            border: 1px solid #ccc;
-            background: #fafafa;
+
+        .criticalBanner {
+            display: none;
+            border: 1px solid rgba(255, 77, 109, 0.58);
+            background: rgba(255, 77, 109, 0.14);
+            color: #ffd6de;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 16px;
+            font-weight: 900;
+        }
+
+        .log {
+            margin-top: 18px;
+            background: #02060d;
+            color: #cfe0ff;
+            border: 1px solid var(--line);
+            border-radius: 10px;
             padding: 12px;
-            margin: 12px 0;
+            max-height: 180px;
+            overflow: auto;
+            white-space: pre-wrap;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+        }
+
+        @media (max-width: 1100px) {
+            .app { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .contentGrid { grid-template-columns: 1fr; }
+            .metrics { grid-template-columns: repeat(2, 1fr); }
+            .topbar { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
-<h1>Caska Fuel Theft Monitor</h1>
+<div class="app">
+    <aside class="sidebar">
+        <div class="logoBox">
+            <img src="logo%20caska.png" alt="CASKA México">
+        </div>
 
-<div class="nota">
-    Modo prueba hipersensible: detecta consumos normales y ruido como posibles ordeñas para validar el flujo.
-    El combustible se interpreta como litros porque MyGeotab lo muestra como Nivel de combustible (volumen) en L.
+        <div class="navItem active">Resumen</div>
+        <div class="navItem">Monitoreo</div>
+        <div class="navItem">Alertas</div>
+        <div class="navItem">Configuración</div>
+
+        <div class="systemBox">
+            <div class="systemLabel">Sistema</div>
+            <div id="estadoSidebar" class="systemStatus">Esperando API</div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <div class="topbar">
+            <div>
+                <div class="eyebrow">Operación</div>
+                <h1>Monitor de Nivel de Combustible</h1>
+                <div class="subtitle">Detección de bajas sospechosas de combustible con contexto de ignición, velocidad, RPM y rebote.</div>
+            </div>
+
+            <div class="clockCard">
+                <div id="fechaActual" class="clockDate">--/--/----</div>
+                <div id="horaActual" class="clockTime">--:--</div>
+            </div>
+        </div>
+
+        <div id="avisoCritico" class="criticalBanner"></div>
+
+        <div class="toolbar">
+            <button onclick="probarApiGeotab()">Probar API</button>
+            <button onclick="analizarHistorico24h()">Histórico 24h</button>
+            <button class="primary" onclick="iniciarMonitoreo()">Iniciar monitoreo</button>
+            <button class="stop" onclick="detenerMonitoreo()">Detener</button>
+            <button onclick="limpiarSalida()">Limpiar</button>
+        </div>
+
+        <div class="metrics">
+            <div class="metricCard">
+                <div class="metricTop"><span>Estado</span><span class="metricIcon">M</span></div>
+                <div id="metricEstado" class="metricValue">Inactivo</div>
+            </div>
+            <div class="metricCard">
+                <div class="metricTop"><span>Unidades revisadas</span><span class="metricIcon">U</span></div>
+                <div id="metricUnidades" class="metricValue">0</div>
+            </div>
+            <div class="metricCard">
+                <div class="metricTop"><span>Alertas críticas</span><span class="metricIcon">A</span></div>
+                <div id="metricCriticas" class="metricValue">0</div>
+            </div>
+            <div class="metricCard">
+                <div class="metricTop"><span>Ruido filtrado</span><span class="metricIcon">R</span></div>
+                <div id="metricRuido" class="metricValue">0</div>
+            </div>
+        </div>
+
+        <div class="contentGrid">
+            <section class="panel">
+                <div class="panelTitle">Alertas detectadas</div>
+                <div id="statusLine" class="statusLine">Sin análisis ejecutado.</div>
+                <div id="alertList" class="alertList"></div>
+            </section>
+
+            <aside class="panel">
+                <div class="panelTitle">Configuración</div>
+                <div class="configRow">
+                    <label>
+                        <input id="enviarWebhook" type="checkbox" style="width:auto;margin-right:6px;">
+                        Enviar alertas críticas por webhook/correo
+                    </label>
+
+                    <label for="destinatariosCorreo">Destinatarios</label>
+                    <textarea id="destinatariosCorreo" placeholder="operador@cliente.com, seguridad@cliente.com"></textarea>
+
+                    <label for="webhookUrl">Webhook externo</label>
+                    <input id="webhookUrl" type="text" placeholder="https://tu-servidor.com/geotab/fuel-alert">
+
+                    <div class="statusLine">Remitente previsto: alertas@caskamexicosos.com</div>
+                    <div class="statusLine">Regla de prueba: baja >= 1.5 L en <= 60 min.</div>
+                </div>
+            </aside>
+        </div>
+
+        <div id="logSalida" class="log"></div>
+    </main>
 </div>
-
-<div id="avisoCritico"></div>
-
-<div class="panel">
-    <strong>Configuración de alertas</strong>
-
-    <label>
-        <input id="enviarWebhook" type="checkbox">
-        Enviar alertas críticas por webhook/correo
-    </label>
-
-    <label for="destinatariosCorreo">Destinatarios de correo</label>
-    <textarea id="destinatariosCorreo" placeholder="operador@cliente.com, seguridad@cliente.com"></textarea>
-
-    <label for="webhookUrl">Webhook del servidor externo</label>
-    <input id="webhookUrl" type="text" placeholder="https://tu-servidor.com/geotab/fuel-alert">
-
-    <div style="margin-top: 8px;">
-        Remitente previsto del servidor externo: <strong>alertas@caskamexicosos.com</strong>
-    </div>
-</div>
-
-<button onclick="probarApiGeotab()">Probar API Geotab</button>
-<button onclick="analizarHistorico24h()">Analizar histórico 24h</button>
-<button onclick="iniciarMonitoreo()">Iniciar monitoreo desde ahora</button>
-<button onclick="detenerMonitoreo()">Detener monitoreo</button>
-<button onclick="limpiarSalida()">Limpiar</button>
-
-<div id="estado">Estado: esperando API de MyGeotab...</div>
-<pre id="salida"></pre>
 
 <script>
 let geotabApi = null;
@@ -100,8 +452,14 @@ let fechaInicioMonitoreo = null;
 let ultimoValorCombustiblePorDispositivo = {};
 let alertasProcesadas = new Set();
 
-const REMITENTE_PREVISTO = "alertas@caskamexicosos.com";
+let metricas = {
+    unidades: 0,
+    criticas: 0,
+    ruido: 0,
+    alertas: []
+};
 
+const REMITENTE_PREVISTO = "alertas@caskamexicosos.com";
 const DIAGNOSTICO_FUEL_UNITS_ID = "DiagnosticFuelUnitsId";
 const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
 const DIAGNOSTICO_VELOCIDAD_ID = "DiagnosticEngineRoadSpeedId";
@@ -121,22 +479,52 @@ const PRIORIDAD_CLASIFICACION = {
     "Probable ruido de sensor": 5
 };
 
+function actualizarReloj() {
+    const ahora = new Date();
+    document.getElementById("fechaActual").innerText = formatearSoloFecha(ahora);
+    document.getElementById("horaActual").innerText = formatearSoloHora(ahora);
+}
+
+setInterval(actualizarReloj, 1000);
+actualizarReloj();
+
 function actualizarEstado(texto) {
-    const estado = document.getElementById("estado");
-    if (estado) estado.innerText = texto;
+    const estadoSidebar = document.getElementById("estadoSidebar");
+    const statusLine = document.getElementById("statusLine");
+
+    if (estadoSidebar) estadoSidebar.innerText = texto.replace("Estado: ", "");
+    if (statusLine) statusLine.innerText = texto;
+
     console.log(texto);
 }
 
 function escribirSalida(texto) {
-    const salida = document.getElementById("salida");
-    if (salida) salida.textContent += texto + "\n";
+    const log = document.getElementById("logSalida");
+    if (log) {
+        log.textContent += texto + "\n";
+        log.scrollTop = log.scrollHeight;
+    }
     console.log(texto);
 }
 
 function limpiarSalida() {
-    const salida = document.getElementById("salida");
-    if (salida) salida.textContent = "";
+    document.getElementById("logSalida").textContent = "";
+    document.getElementById("alertList").innerHTML = "";
     ocultarAvisoCritico();
+    resetMetricas();
+    actualizarEstado("Estado: limpio");
+}
+
+function resetMetricas() {
+    metricas = { unidades: 0, criticas: 0, ruido: 0, alertas: [] };
+    renderMetricas();
+}
+
+function renderMetricas() {
+    document.getElementById("metricEstado").innerText = monitoreoActivo ? "Activo" : "Inactivo";
+    document.getElementById("metricUnidades").innerText = metricas.unidades;
+    document.getElementById("metricCriticas").innerText = metricas.criticas;
+    document.getElementById("metricRuido").innerText = metricas.ruido;
 }
 
 function mostrarAvisoCritico(alertasCriticas) {
@@ -144,9 +532,7 @@ function mostrarAvisoCritico(alertasCriticas) {
     if (!aviso || alertasCriticas.length === 0) return;
 
     aviso.style.display = "block";
-    aviso.innerText =
-        "ALERTA: se detectaron " + alertasCriticas.length +
-        " posibles ordeñas de alta prioridad. Revisar el detalle abajo.";
+    aviso.innerText = "ALERTA: " + alertasCriticas.length + " posible(s) ordeña(s) de alta prioridad detectada(s).";
 }
 
 function ocultarAvisoCritico() {
@@ -157,46 +543,71 @@ function ocultarAvisoCritico() {
     }
 }
 
-function obtenerConfiguracionAlertas() {
-    const enviarWebhook = document.getElementById("enviarWebhook").checked;
-    const webhookUrl = document.getElementById("webhookUrl").value.trim();
-    const destinatariosTexto = document.getElementById("destinatariosCorreo").value.trim();
+function agregarAlertasVista(alertas) {
+    const contenedor = document.getElementById("alertList");
 
-    const destinatarios = destinatariosTexto
-        .split(/[,\n;]/)
-        .map(function (correo) { return correo.trim(); })
-        .filter(function (correo) { return correo.length > 0; });
+    alertas.forEach(function (alerta) {
+        metricas.alertas.push(alerta);
 
-    return {
-        enviarWebhook: enviarWebhook,
-        webhookUrl: webhookUrl,
-        destinatarios: destinatarios
-    };
+        if (alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa") {
+            metricas.criticas += 1;
+        }
+
+        if (alerta.contexto.clasificacion === "Probable ruido de sensor") {
+            metricas.ruido += 1;
+        }
+
+        const card = document.createElement("div");
+        card.className = "alertCard";
+
+        const badgeClass = obtenerClaseBadge(alerta.contexto.clasificacion);
+
+        card.innerHTML =
+            '<div class="alertHead">' +
+                '<div class="alertUnit">' + escaparHtml(alerta.unidad) + '</div>' +
+                '<div class="badge ' + badgeClass + '">' + escaparHtml(alerta.contexto.clasificacion) + '</div>' +
+            '</div>' +
+            '<div class="alertDrop">-' + alerta.baja.toFixed(2) + ' L</div>' +
+            '<div class="alertMeta">' +
+                'De ' + alerta.valorAntes + ' L a ' + alerta.valorDespues + ' L<br>' +
+                formatearFechaHora(alerta.desdeFecha) + ' - ' + formatearFechaHora(alerta.hastaFecha) + '<br>' +
+                'Ventana: ' + alerta.minutos.toFixed(1) + ' min<br>' +
+                'Ignición: ' + escaparHtml(alerta.contexto.estadoIgnicion) + '<br>' +
+                'Velocidad: ' + escaparHtml(formatearEstadistica(alerta.contexto.velocidad)) + '<br>' +
+                'RPM: ' + escaparHtml(formatearEstadistica(alerta.contexto.rpm)) + '<br>' +
+                'Rebote: ' + escaparHtml(alerta.contexto.reboteTexto) +
+            '</div>';
+
+        contenedor.appendChild(card);
+    });
+
+    renderMetricas();
+}
+
+function obtenerClaseBadge(clasificacion) {
+    if (clasificacion === "Mas sospechosa" || clasificacion === "Sospechosa") return "high";
+    if (clasificacion === "Revisar") return "review";
+    if (clasificacion === "Probable consumo normal") return "normal";
+    return "noise";
 }
 
 function probarApiGeotab() {
     if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavia no disponible");
+        actualizarEstado("Estado: API Geotab todavía no disponible");
         return;
     }
 
-    limpiarSalida();
-    actualizarEstado("Estado: probando conexion con Geotab...");
+    actualizarEstado("Estado: probando conexión con Geotab...");
 
     geotabApi.call(
         "Get",
         { typeName: "Device", resultsLimit: 5 },
         function (devices) {
-            escribirSalida("Conexion correcta con Geotab.");
-            escribirSalida("Activos encontrados: " + devices.length);
-            devices.forEach(function (device, index) {
-                escribirSalida((index + 1) + ". " + (device.name || "Sin nombre") + " | id: " + device.id);
-            });
-            actualizarEstado("Estado: conexion correcta");
+            escribirSalida("Conexión correcta con Geotab. Activos encontrados: " + devices.length);
+            actualizarEstado("Estado: conexión correcta");
         },
         function (error) {
-            escribirSalida("Error al consultar Device:");
-            escribirSalida(JSON.stringify(error, null, 2));
+            escribirSalida("Error al consultar Device: " + JSON.stringify(error));
             actualizarEstado("Estado: error al probar API");
         }
     );
@@ -204,27 +615,23 @@ function probarApiGeotab() {
 
 function analizarHistorico24h() {
     if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavia no disponible");
+        actualizarEstado("Estado: API Geotab todavía no disponible");
         return;
     }
 
     limpiarSalida();
-    actualizarEstado("Estado: analizando historico de 24 horas...");
+    actualizarEstado("Estado: analizando histórico de 24 horas...");
 
     geotabApi.call(
         "Get",
         { typeName: "Device", resultsLimit: 10 },
         function (devices) {
-            escribirSalida("Analisis historico 24h.");
-            escribirSalida("Combustible volumen: " + DIAGNOSTICO_FUEL_UNITS_ID);
-            escribirSalida("Regla prueba: baja >= " + BAJA_MINIMA_LITROS_PRUEBA + " L en <= " + VENTANA_MAXIMA_MINUTOS_PRUEBA + " minutos.");
-            escribirSalida("");
-
+            metricas.unidades = devices.length;
+            renderMetricas();
             consultarSiguienteUnidadHistorico(devices, 0, []);
         },
         function (error) {
-            escribirSalida("Error al consultar Device:");
-            escribirSalida(JSON.stringify(error, null, 2));
+            escribirSalida("Error al consultar Device: " + JSON.stringify(error));
             actualizarEstado("Estado: error al cargar activos");
         }
     );
@@ -237,7 +644,7 @@ function consultarSiguienteUnidadHistorico(devices, index, alertasCriticasGlobal
             enviarAlertasPorWebhook(alertasCriticasGlobales, "historico_24h");
         }
 
-        actualizarEstado("Estado: analisis historico terminado");
+        actualizarEstado("Estado: análisis histórico terminado");
         return;
     }
 
@@ -245,28 +652,20 @@ function consultarSiguienteUnidadHistorico(devices, index, alertasCriticasGlobal
     const ahora = new Date();
     const hace24Horas = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
 
-    escribirSalida("========================================");
-    escribirSalida("Unidad: " + (device.name || "Sin nombre") + " | id: " + device.id);
-
     consultarContextoDispositivo(device, hace24Horas, ahora, 700, function (fuelData, ignitionData, speedData, rpmData) {
         const alertasCriticasUnidad = analizarUnidad(device, fuelData, ignitionData, speedData, rpmData);
-        alertasCriticasUnidad.forEach(function (alerta) {
-            alertasCriticasGlobales.push(alerta);
-        });
-
-        escribirSalida("");
+        alertasCriticasUnidad.forEach(function (alerta) { alertasCriticasGlobales.push(alerta); });
         consultarSiguienteUnidadHistorico(devices, index + 1, alertasCriticasGlobales);
     });
 }
 
 function iniciarMonitoreo() {
     if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavia no disponible");
+        actualizarEstado("Estado: API Geotab todavía no disponible");
         return;
     }
 
     detenerMonitoreo();
-
     limpiarSalida();
 
     monitoreoActivo = true;
@@ -275,18 +674,13 @@ function iniciarMonitoreo() {
     alertasProcesadas.clear();
 
     escribirSalida("Monitoreo iniciado desde: " + formatearFechaHora(fechaInicioMonitoreo.toISOString()));
-    escribirSalida("Intervalo de consulta: " + (INTERVALO_MONITOREO_MS / 1000) + " segundos");
-    escribirSalida("Solo se evaluaran lecturas posteriores al inicio del monitoreo.");
-    escribirSalida("");
-
     actualizarEstado("Estado: monitoreo activo");
+    renderMetricas();
 
     ejecutarCicloMonitoreo();
 
     temporizadorMonitoreo = setInterval(function () {
-        if (monitoreoActivo) {
-            ejecutarCicloMonitoreo();
-        }
+        if (monitoreoActivo) ejecutarCicloMonitoreo();
     }, INTERVALO_MONITOREO_MS);
 }
 
@@ -299,27 +693,26 @@ function detenerMonitoreo() {
     }
 
     actualizarEstado("Estado: monitoreo detenido");
+    renderMetricas();
 }
 
 function ejecutarCicloMonitoreo() {
     if (!monitoreoActivo || !fechaInicioMonitoreo) return;
 
     const ahora = new Date();
-    const desde = new Date(Math.max(
-        fechaInicioMonitoreo.getTime(),
-        ahora.getTime() - 10 * 60 * 1000
-    ));
+    const desde = new Date(Math.max(fechaInicioMonitoreo.getTime(), ahora.getTime() - 10 * 60 * 1000));
 
     geotabApi.call(
         "Get",
         { typeName: "Device", resultsLimit: 10 },
         function (devices) {
+            metricas.unidades = devices.length;
+            renderMetricas();
             escribirSalida("Ciclo monitoreo: " + formatearFechaHora(ahora.toISOString()));
             consultarSiguienteUnidadMonitoreo(devices, 0, desde, ahora, []);
         },
         function (error) {
-            escribirSalida("Error al consultar Device en monitoreo:");
-            escribirSalida(JSON.stringify(error, null, 2));
+            escribirSalida("Error al consultar Device en monitoreo: " + JSON.stringify(error));
         }
     );
 }
@@ -341,19 +734,13 @@ function consultarSiguienteUnidadMonitoreo(devices, index, desde, hasta, alertas
 
     consultarContextoDispositivo(device, desde, hasta, 100, function (fuelData, ignitionData, speedData, rpmData) {
         const alertas = analizarUnidadMonitoreo(device, fuelData, ignitionData, speedData, rpmData);
-
-        alertas.forEach(function (alerta) {
-            alertasCriticasGlobales.push(alerta);
-        });
-
+        alertas.forEach(function (alerta) { alertasCriticasGlobales.push(alerta); });
         consultarSiguienteUnidadMonitoreo(devices, index + 1, desde, hasta, alertasCriticasGlobales);
     });
 }
 
 function analizarUnidadMonitoreo(device, fuelData, ignitionData, speedData, rpmData) {
-    if (!fuelData || fuelData.length === 0) {
-        return [];
-    }
+    if (!fuelData || fuelData.length === 0) return [];
 
     const deviceId = device.id;
     let datosParaAnalizar = fuelData.slice();
@@ -369,29 +756,19 @@ function analizarUnidadMonitoreo(device, fuelData, ignitionData, speedData, rpmD
 
     alertas.forEach(function (alerta) {
         const idAlerta = crearIdAlerta(alerta);
-
-        if (alertasProcesadas.has(idAlerta)) {
-            return;
-        }
-
+        if (alertasProcesadas.has(idAlerta)) return;
         alertasProcesadas.add(idAlerta);
         alertasNuevas.push(alerta);
     });
 
     if (alertasNuevas.length > 0) {
         ordenarAlertasPorPrioridad(alertasNuevas);
-
-        escribirSalida("");
-        escribirSalida("ALERTAS NUEVAS EN MONITOREO: " + alertasNuevas.length);
-        alertasNuevas.slice(0, LIMITE_ALERTAS_POR_UNIDAD).forEach(function (alerta, index) {
-            escribirAlerta(alerta, index + 1);
-        });
-        escribirSalida("");
+        agregarAlertasVista(alertasNuevas.slice(0, LIMITE_ALERTAS_POR_UNIDAD));
+        escribirSalida("Alertas nuevas en monitoreo: " + alertasNuevas.length);
     }
 
     return alertasNuevas.filter(function (alerta) {
-        return alerta.contexto.clasificacion === "Mas sospechosa" ||
-            alerta.contexto.clasificacion === "Sospechosa";
+        return alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa";
     });
 }
 
@@ -427,48 +804,24 @@ function consultarStatusData(device, diagnosticId, desde, hasta, limite, callbac
             callback(datos);
         },
         function (error) {
-            escribirSalida("Error al consultar " + diagnosticId + " para " + (device.name || device.id) + ":");
-            escribirSalida(JSON.stringify(error, null, 2));
+            escribirSalida("Error al consultar " + diagnosticId + " para " + (device.name || device.id) + ": " + JSON.stringify(error));
             callback([]);
         }
     );
 }
 
 function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
-    escribirSalida("Lecturas combustible volumen: " + fuelData.length);
-    escribirSalida("Lecturas Ignicion: " + ignitionData.length);
-    escribirSalida("Lecturas Velocidad: " + speedData.length);
-    escribirSalida("Lecturas RPM: " + rpmData.length);
-
-    if (fuelData.length < 2) {
-        escribirSalida("Sin suficientes lecturas de combustible para analizar.");
-        return [];
-    }
+    if (fuelData.length < 2) return [];
 
     let alertas = detectarAlertas(device, fuelData, ignitionData, speedData, rpmData);
 
-    if (alertas.length === 0) {
-        escribirSalida("Sin alertas de prueba detectadas.");
-        return [];
-    }
+    if (alertas.length === 0) return [];
 
     ordenarAlertasPorPrioridad(alertas);
-
-    escribirSalida("ALERTAS DE PRUEBA DETECTADAS: " + alertas.length);
-    escribirResumenClasificaciones(alertas);
-
-    alertas.slice(0, LIMITE_ALERTAS_POR_UNIDAD).forEach(function (alerta, index) {
-        escribirAlerta(alerta, index + 1);
-    });
-
-    if (alertas.length > LIMITE_ALERTAS_POR_UNIDAD) {
-        escribirSalida("");
-        escribirSalida("Hay " + (alertas.length - LIMITE_ALERTAS_POR_UNIDAD) + " alertas adicionales no mostradas para esta unidad.");
-    }
+    agregarAlertasVista(alertas.slice(0, LIMITE_ALERTAS_POR_UNIDAD));
 
     return alertas.filter(function (alerta) {
-        return alerta.contexto.clasificacion === "Mas sospechosa" ||
-            alerta.contexto.clasificacion === "Sospechosa";
+        return alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa";
     });
 }
 
@@ -488,14 +841,7 @@ function detectarAlertas(device, fuelData, ignitionData, speedData, rpmData) {
         const minutos = diferenciaMinutos(anterior.dateTime, actual.dateTime);
 
         if (baja >= BAJA_MINIMA_LITROS_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
-            const contexto = construirContextoAlerta(
-                anterior,
-                actual,
-                fuelData,
-                ignitionData,
-                speedData,
-                rpmData
-            );
+            const contexto = construirContextoAlerta(anterior, actual, fuelData, ignitionData, speedData, rpmData);
 
             alertas.push({
                 unidad: device.name || device.id,
@@ -514,59 +860,6 @@ function detectarAlertas(device, fuelData, ignitionData, speedData, rpmData) {
     return alertas;
 }
 
-function escribirAlerta(alerta, numero) {
-    escribirSalida("");
-    escribirSalida("ALERTA #" + numero);
-    escribirSalida("Unidad: " + alerta.unidad);
-    escribirSalida("Clasificacion: " + alerta.contexto.clasificacion);
-    escribirSalida("Motivo: " + alerta.contexto.motivo);
-    escribirSalida("Baja combustible: " + alerta.baja.toFixed(2) + " L");
-    escribirSalida("Valor antes: " + alerta.valorAntes + " L");
-    escribirSalida("Valor despues: " + alerta.valorDespues + " L");
-    escribirSalida("Ventana: " + alerta.minutos.toFixed(1) + " minutos");
-    escribirSalida("Desde: " + formatearFechaHora(alerta.desdeFecha));
-    escribirSalida("Hasta: " + formatearFechaHora(alerta.hastaFecha));
-    escribirSalida("Ignicion estimada durante intervalo: " + alerta.contexto.estadoIgnicion);
-    escribirSalida("Velocidad max/prom: " + formatearEstadistica(alerta.contexto.velocidad));
-    escribirSalida("RPM max/prom: " + formatearEstadistica(alerta.contexto.rpm));
-    escribirSalida("Rebote posterior: " + alerta.contexto.reboteTexto);
-}
-
-function ordenarAlertasPorPrioridad(alertas) {
-    alertas.sort(function (a, b) {
-        const prioridadA = PRIORIDAD_CLASIFICACION[a.contexto.clasificacion] || 99;
-        const prioridadB = PRIORIDAD_CLASIFICACION[b.contexto.clasificacion] || 99;
-
-        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-        if (b.baja !== a.baja) return b.baja - a.baja;
-
-        return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
-    });
-}
-
-function escribirResumenClasificaciones(alertas) {
-    const resumen = {
-        "Mas sospechosa": 0,
-        "Sospechosa": 0,
-        "Revisar": 0,
-        "Probable consumo normal": 0,
-        "Probable ruido de sensor": 0
-    };
-
-    alertas.forEach(function (alerta) {
-        const clasificacion = alerta.contexto.clasificacion;
-        if (resumen[clasificacion] === undefined) resumen[clasificacion] = 0;
-        resumen[clasificacion] += 1;
-    });
-
-    escribirSalida("Resumen por clasificacion:");
-    escribirSalida("  Mas sospechosa: " + resumen["Mas sospechosa"]);
-    escribirSalida("  Sospechosa: " + resumen["Sospechosa"]);
-    escribirSalida("  Revisar: " + resumen["Revisar"]);
-    escribirSalida("  Probable consumo normal: " + resumen["Probable consumo normal"]);
-    escribirSalida("  Probable ruido de sensor: " + resumen["Probable ruido de sensor"]);
-}
-
 function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData, speedData, rpmData) {
     const desde = new Date(fuelAntes.dateTime);
     const hasta = new Date(fuelDespues.dateTime);
@@ -579,12 +872,7 @@ function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData,
     const rpm = estadisticasNumericas(rpmIntervalo);
     const rebote = detectarRebote(fuelDespues, fuelData);
 
-    return clasificarAlerta({
-        estadoIgnicion: estadoIgnicion,
-        velocidad: velocidad,
-        rpm: rpm,
-        rebote: rebote
-    });
+    return clasificarAlerta({ estadoIgnicion: estadoIgnicion, velocidad: velocidad, rpm: rpm, rebote: rebote });
 }
 
 function clasificarAlerta(contexto) {
@@ -597,19 +885,19 @@ function clasificarAlerta(contexto) {
 
     if (contexto.rebote.hayRebote) {
         clasificacion = "Probable ruido de sensor";
-        motivo = "El nivel de combustible se recupero despues de la baja dentro de la ventana de revision.";
+        motivo = "El nivel de combustible se recupero despues de la baja.";
     } else if (hayVelocidad || hayRpm) {
         clasificacion = "Probable consumo normal";
-        motivo = "Hay velocidad o RPM durante el intervalo, compatible con uso normal.";
+        motivo = "Hay velocidad o RPM durante el intervalo.";
     } else if (sinDatosMovimiento && contexto.estadoIgnicion === "encendida") {
         clasificacion = "Revisar";
-        motivo = "Ignicion encendida, pero no hubo datos de velocidad/RPM dentro del intervalo.";
+        motivo = "Ignicion encendida, sin datos de velocidad/RPM.";
     } else if (contexto.estadoIgnicion === "apagada") {
         clasificacion = "Mas sospechosa";
-        motivo = "La baja parece ocurrir con ignicion apagada y sin recuperacion posterior.";
+        motivo = "Baja con ignicion apagada y sin recuperacion posterior.";
     } else if (contexto.estadoIgnicion === "encendida") {
         clasificacion = "Revisar";
-        motivo = "Ignicion encendida, pero velocidad/RPM disponibles no explican la baja.";
+        motivo = "Ignicion encendida, pero movimiento no explica la baja.";
     }
 
     return {
@@ -622,6 +910,16 @@ function clasificarAlerta(contexto) {
     };
 }
 
+function ordenarAlertasPorPrioridad(alertas) {
+    alertas.sort(function (a, b) {
+        const prioridadA = PRIORIDAD_CLASIFICACION[a.contexto.clasificacion] || 99;
+        const prioridadB = PRIORIDAD_CLASIFICACION[b.contexto.clasificacion] || 99;
+        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
+        if (b.baja !== a.baja) return b.baja - a.baja;
+        return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
+    });
+}
+
 function filtrarPorIntervalo(datos, desde, hasta) {
     return datos.filter(function (dato) {
         const fecha = new Date(dato.dateTime);
@@ -630,23 +928,14 @@ function filtrarPorIntervalo(datos, desde, hasta) {
 }
 
 function estadisticasNumericas(datos) {
-    const valores = datos
-        .map(function (dato) { return Number(dato.data); })
-        .filter(function (valor) { return !isNaN(valor); });
+    const valores = datos.map(function (dato) { return Number(dato.data); }).filter(function (valor) { return !isNaN(valor); });
 
-    if (valores.length === 0) {
-        return { tieneDatos: false, max: null, prom: null, cantidad: 0 };
-    }
+    if (valores.length === 0) return { tieneDatos: false, max: null, prom: null, cantidad: 0 };
 
     const suma = valores.reduce(function (acc, valor) { return acc + valor; }, 0);
     const max = Math.max.apply(null, valores);
 
-    return {
-        tieneDatos: true,
-        max: max,
-        prom: suma / valores.length,
-        cantidad: valores.length
-    };
+    return { tieneDatos: true, max: max, prom: suma / valores.length, cantidad: valores.length };
 }
 
 function formatearEstadistica(estadistica) {
@@ -662,11 +951,9 @@ function estimarEstadoIgnicion(ignitionData, desde, hasta) {
 
     ignitionData.forEach(function (dato) {
         const fecha = new Date(dato.dateTime);
-
         if (fecha <= desde) {
             if (!ultimoAntes || fecha > new Date(ultimoAntes.dateTime)) ultimoAntes = dato;
         }
-
         if (fecha >= desde && fecha <= hasta) eventosDentro.push(dato);
     });
 
@@ -698,13 +985,9 @@ function detectarRebote(fuelDespues, fuelData) {
     });
 
     const recuperacion = maxPosterior - valorDespues;
-    const hayRebote = recuperacion >= 1.0;
 
-    if (hayRebote) {
-        return {
-            hayRebote: true,
-            texto: "si, recupero " + recuperacion.toFixed(2) + " L en " + MINUTOS_REVISION_REBOTE + " min"
-        };
+    if (recuperacion >= 1.0) {
+        return { hayRebote: true, texto: "si, recupero " + recuperacion.toFixed(2) + " L" };
     }
 
     return { hayRebote: false, texto: "no" };
@@ -713,26 +996,19 @@ function detectarRebote(fuelDespues, fuelData) {
 function enviarAlertasPorWebhook(alertas, modo) {
     const configuracion = obtenerConfiguracionAlertas();
 
-    if (!configuracion.enviarWebhook || !configuracion.webhookUrl || alertas.length === 0) {
-        return;
-    }
+    if (!configuracion.enviarWebhook || !configuracion.webhookUrl || alertas.length === 0) return;
 
     fetch(configuracion.webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            origen: "Caska Fuel Theft Monitor",
+            origen: "Monitor de Nivel de Combustible",
             modo: modo,
-            remitentePrevisto: REMITENTE_PREVISTO,
             fechaEnvio: new Date().toISOString(),
-            fechaEnvioLocal: formatearFechaHora(new Date().toISOString()),
             destinatarios: configuracion.destinatarios,
             alertas: alertas.map(prepararAlertaParaEnvio)
         })
-    }).then(function () {
-        escribirSalida("Alertas enviadas al webhook para correo.");
     }).catch(function (error) {
-        console.error("No se pudo enviar alerta al webhook:", error);
         escribirSalida("No se pudo enviar alerta al webhook: " + error);
     });
 }
@@ -749,8 +1025,6 @@ function prepararAlertaParaEnvio(alerta) {
         ventanaMinutos: Number(alerta.minutos.toFixed(1)),
         desde: formatearFechaHora(alerta.desdeFecha),
         hasta: formatearFechaHora(alerta.hastaFecha),
-        desdeIso: alerta.desdeFecha,
-        hastaIso: alerta.hastaFecha,
         ignicion: alerta.contexto.estadoIgnicion,
         rebote: alerta.contexto.reboteTexto
     };
@@ -761,26 +1035,13 @@ function obtenerConfiguracionAlertas() {
     const webhookUrl = document.getElementById("webhookUrl").value.trim();
     const destinatariosTexto = document.getElementById("destinatariosCorreo").value.trim();
 
-    const destinatarios = destinatariosTexto
-        .split(/[,\n;]/)
-        .map(function (correo) { return correo.trim(); })
-        .filter(function (correo) { return correo.length > 0; });
+    const destinatarios = destinatariosTexto.split(/[,\n;]/).map(function (correo) { return correo.trim(); }).filter(function (correo) { return correo.length > 0; });
 
-    return {
-        enviarWebhook: enviarWebhook,
-        webhookUrl: webhookUrl,
-        destinatarios: destinatarios
-    };
+    return { enviarWebhook: enviarWebhook, webhookUrl: webhookUrl, destinatarios: destinatarios };
 }
 
 function crearIdAlerta(alerta) {
-    return [
-        alerta.deviceId,
-        alerta.desdeFecha,
-        alerta.hastaFecha,
-        alerta.valorAntes,
-        alerta.valorDespues
-    ].join("|");
+    return [alerta.deviceId, alerta.desdeFecha, alerta.hastaFecha, alerta.valorAntes, alerta.valorDespues].join("|");
 }
 
 function diferenciaMinutos(fechaA, fechaB) {
@@ -789,10 +1050,7 @@ function diferenciaMinutos(fechaA, fechaB) {
 
 function formatearFechaHora(fechaTexto) {
     const fecha = new Date(fechaTexto);
-
-    if (isNaN(fecha.getTime())) {
-        return fechaTexto;
-    }
+    if (isNaN(fecha.getTime())) return fechaTexto;
 
     const dia = String(fecha.getDate()).padStart(2, "0");
     const mes = String(fecha.getMonth() + 1).padStart(2, "0");
@@ -801,6 +1059,28 @@ function formatearFechaHora(fechaTexto) {
     const minuto = String(fecha.getMinutes()).padStart(2, "0");
 
     return dia + "/" + mes + "/" + anio + " " + hora + ":" + minuto;
+}
+
+function formatearSoloFecha(fecha) {
+    const dia = String(fecha.getDate()).padStart(2, "0");
+    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+    const anio = fecha.getFullYear();
+    return dia + "/" + mes + "/" + anio;
+}
+
+function formatearSoloHora(fecha) {
+    const hora = String(fecha.getHours()).padStart(2, "0");
+    const minuto = String(fecha.getMinutes()).padStart(2, "0");
+    return hora + ":" + minuto;
+}
+
+function escaparHtml(texto) {
+    return String(texto)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function crearModuloAddIn() {
@@ -835,7 +1115,8 @@ geotab.addin.caska_fuel_diagnostics = crearModuloAddIn;
 geotab.addin.caskaGeotabFuelAlerts = crearModuloAddIn;
 geotab.addin.caska_geotab_fuel_alerts = crearModuloAddIn;
 
-actualizarEstado("Estado: codigo cargado, esperando API de MyGeotab...");
+actualizarEstado("Estado: código cargado, esperando API de MyGeotab...");
+renderMetricas();
 </script>
 
 </body>

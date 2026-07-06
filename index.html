@@ -1,1123 +1,1012 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <title>Monitor de Nivel de Combustible</title>
-    <style>
-        :root {
-            --bg: #050b14;
-            --panel: #0c1524;
-            --panel2: #111d31;
-            --line: #22314d;
-            --text: #f7f9ff;
-            --muted: #9fb0cb;
-            --soft: #c8d5ee;
-            --accent: #6f61ff;
-            --accent2: #1dd6a6;
-            --warn: #ffcc66;
-            --danger: #ff4d6d;
-            --blue: #45a3ff;
-        }
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Monitor de Nivel de Combustible</title>
+  <style>
+    html,
+    body {
+      margin: 0 !important;
+      padding: 0 !important;
+      min-height: 100%;
+      background: #07101c !important;
+      color: #f7fbff !important;
+      font-family: Inter, "Segoe UI", Arial, sans-serif !important;
+    }
 
-        * { box-sizing: border-box; }
+    .caska-app,
+    .caska-app * {
+      box-sizing: border-box;
+    }
 
-        body {
-            margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
-            background: radial-gradient(circle at top right, #182164 0, #07101d 34%, #040912 100%);
-            color: var(--text);
-        }
+    .caska-app {
+      --bg: #07101c;
+      --sidebar: #050b14;
+      --panel: #101b2d;
+      --panel-2: #14223a;
+      --line: rgba(164, 180, 205, 0.2);
+      --text: #f7fbff;
+      --muted: #a9bad2;
+      --soft: #d8e4f6;
+      --accent: #6f63ff;
+      --accent-2: #12e6a8;
+      --danger: #ff5470;
+      --warning: #f6b73c;
+      --blue: #39a6ff;
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 72% 0%, rgba(111, 99, 255, 0.28), transparent 34%),
+        linear-gradient(135deg, #07101c 0%, #0c1424 52%, #10113a 100%);
+      color: var(--text);
+    }
 
-        .app {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
-        }
+    .caska-sidebar {
+      min-height: 100vh;
+      background: rgba(5, 11, 20, 0.94);
+      border-right: 1px solid var(--line);
+      padding: 28px 22px;
+      position: sticky;
+      top: 0;
+    }
 
-        .sidebar {
-            border-right: 1px solid var(--line);
-            background: rgba(5, 11, 20, 0.92);
-            padding: 28px 20px;
-        }
+    .caska-logoBox {
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 26px;
+    }
 
-        .logoBox {
-            padding: 8px 0 28px;
-            border-bottom: 1px solid var(--line);
-            margin-bottom: 26px;
-        }
+    .caska-logo {
+      width: 190px;
+      max-width: 100%;
+      display: block;
+      border-radius: 6px;
+      background: #2c2c2c;
+    }
 
-        .logoBox img {
-            width: 210px;
-            max-width: 100%;
-            display: block;
-        }
+    .caska-nav {
+      display: grid;
+      gap: 9px;
+      margin-bottom: 26px;
+    }
 
-        .navItem {
-            padding: 14px 16px;
-            border-radius: 8px;
-            color: var(--soft);
-            font-weight: 700;
-            margin-bottom: 10px;
-            border: 1px solid transparent;
-        }
+    .caska-navItem {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 13px 14px;
+      border-radius: 8px;
+      color: #c8d5ea;
+      font-size: 15px;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
 
-        .navItem.active {
-            background: linear-gradient(135deg, rgba(111, 97, 255, 0.92), rgba(38, 53, 130, 0.9));
-            border-color: rgba(161, 151, 255, 0.45);
-            color: #fff;
-        }
+    .caska-navItem.active {
+      background: linear-gradient(135deg, rgba(111, 99, 255, 0.92), rgba(48, 42, 137, 0.92));
+      border-color: rgba(160, 153, 255, 0.35);
+      color: #ffffff;
+    }
 
-        .systemBox {
-            margin-top: 28px;
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 14px;
-            background: rgba(17, 29, 49, 0.75);
-        }
+    .caska-system {
+      margin-top: 28px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(16, 27, 45, 0.78);
+    }
 
-        .systemLabel {
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 700;
-            margin-bottom: 6px;
-        }
+    .caska-systemLabel {
+      display: block;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      margin-bottom: 7px;
+    }
 
-        .systemStatus {
-            color: var(--accent2);
-            font-weight: 800;
-        }
+    .caska-systemState {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--accent-2);
+      font-weight: 900;
+    }
 
-        .main {
-            padding: 34px 36px;
-        }
+    .caska-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent-2);
+      box-shadow: 0 0 0 4px rgba(18, 230, 168, 0.14);
+    }
 
-        .topbar {
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-            align-items: flex-start;
-            margin-bottom: 28px;
-        }
+    .caska-main {
+      min-width: 0;
+      padding: 38px 40px 48px;
+    }
 
-        .eyebrow {
-            color: #8d7dff;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            font-size: 13px;
-            font-weight: 900;
-            margin-bottom: 14px;
-        }
+    .caska-topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
 
-        h1 {
-            margin: 0;
-            font-size: 44px;
-            line-height: 1.05;
-        }
+    .caska-kicker {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: 0;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
 
-        .subtitle {
-            margin-top: 14px;
-            color: var(--muted);
-            font-size: 16px;
-        }
+    .caska-title {
+      margin: 0;
+      font-size: 42px;
+      line-height: 1.05;
+      font-weight: 900;
+      color: var(--text);
+    }
 
-        .clockCard {
-            min-width: 260px;
-            background: rgba(13, 23, 40, 0.9);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 18px 22px;
-            text-align: center;
-        }
+    .caska-subtitle {
+      margin: 14px 0 0;
+      color: #b8c9e4;
+      font-size: 16px;
+      max-width: 920px;
+    }
 
-        .clockDate {
-            font-weight: 900;
-            font-size: 18px;
-        }
+    .caska-clock {
+      min-width: 220px;
+      text-align: center;
+      padding: 16px 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(10, 18, 31, 0.72);
+      color: #dfe9fb;
+      font-weight: 800;
+      line-height: 1.35;
+    }
 
-        .clockTime {
-            color: var(--soft);
-            font-size: 22px;
-            margin-top: 4px;
-        }
+    .caska-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 22px 0 26px;
+    }
 
-        .toolbar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin-bottom: 22px;
-        }
+    .caska-btn {
+      appearance: none;
+      border: 1px solid rgba(150, 166, 205, 0.34);
+      border-radius: 8px;
+      background: rgba(15, 25, 43, 0.86);
+      color: #ffffff;
+      padding: 11px 14px;
+      min-height: 42px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
 
-        button {
-            border: 1px solid rgba(127, 142, 255, 0.45);
-            background: rgba(18, 28, 53, 0.9);
-            color: #fff;
-            border-radius: 8px;
-            padding: 11px 16px;
-            font-weight: 800;
-            cursor: pointer;
-        }
+    .caska-btn:hover {
+      border-color: rgba(255, 255, 255, 0.52);
+      background: rgba(27, 42, 70, 0.95);
+    }
 
-        button.primary {
-            background: linear-gradient(135deg, #6f61ff, #3531a3);
-        }
+    .caska-btnPrimary {
+      background: linear-gradient(135deg, #7468ff, #3b33ad);
+      border-color: rgba(180, 176, 255, 0.42);
+    }
 
-        button.stop {
-            border-color: rgba(255, 77, 109, 0.45);
-            color: #ffd7de;
-        }
+    .caska-btnDanger {
+      background: rgba(255, 84, 112, 0.14);
+      border-color: rgba(255, 84, 112, 0.5);
+      color: #ffdce3;
+    }
 
-        button:hover {
-            filter: brightness(1.12);
-        }
+    .caska-gridMetrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(150px, 1fr));
+      gap: 16px;
+      margin-bottom: 22px;
+    }
 
-        .metrics {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(170px, 1fr));
-            gap: 16px;
-            margin-bottom: 22px;
-        }
+    .caska-card,
+    .caska-panel {
+      border: 1px solid var(--line);
+      background: rgba(16, 27, 45, 0.78);
+      border-radius: 8px;
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
+    }
 
-        .metricCard {
-            background: rgba(17, 29, 49, 0.88);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 18px;
-            min-height: 128px;
-        }
+    .caska-card {
+      padding: 20px;
+      min-height: 128px;
+    }
 
-        .metricTop {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: var(--muted);
-            font-weight: 900;
-            font-size: 13px;
-            text-transform: uppercase;
-        }
+    .caska-cardLabel {
+      color: #aebfda;
+      font-size: 13px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
 
-        .metricIcon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            display: grid;
-            place-items: center;
-            background: rgba(111, 97, 255, 0.22);
-            color: #bcb5ff;
-            font-weight: 900;
-        }
+    .caska-cardValue {
+      font-size: 38px;
+      line-height: 1;
+      font-weight: 900;
+      color: #ffffff;
+    }
 
-        .metricValue {
-            font-size: 38px;
-            font-weight: 900;
-            margin-top: 22px;
-        }
+    .caska-content {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
+      gap: 16px;
+      align-items: start;
+    }
 
-        .contentGrid {
-            display: grid;
-            grid-template-columns: 1fr 340px;
-            gap: 18px;
-        }
+    .caska-panelHeader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--line);
+    }
 
-        .panel {
-            background: rgba(12, 21, 36, 0.9);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 18px;
-        }
+    .caska-panelTitle {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 900;
+    }
 
-        .panelTitle {
-            font-size: 20px;
-            font-weight: 900;
-            margin-bottom: 14px;
-        }
+    .caska-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(18, 230, 168, 0.12);
+      color: #7fffd2;
+      border: 1px solid rgba(18, 230, 168, 0.28);
+      font-size: 12px;
+      font-weight: 900;
+    }
 
-        .alertList {
-            display: grid;
-            gap: 12px;
-            max-height: 520px;
-            overflow: auto;
-            padding-right: 4px;
-        }
+    .caska-panelBody {
+      padding: 18px 20px 20px;
+    }
 
-        .alertCard {
-            border: 1px solid var(--line);
-            background: rgba(17, 29, 49, 0.82);
-            border-radius: 10px;
-            padding: 14px;
-        }
+    .caska-alertList {
+      display: grid;
+      gap: 12px;
+      max-height: 480px;
+      overflow: auto;
+      padding-right: 4px;
+    }
 
-        .alertHead {
-            display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 10px;
-        }
+    .caska-alert {
+      border: 1px solid rgba(255, 84, 112, 0.32);
+      background: rgba(255, 84, 112, 0.08);
+      border-radius: 8px;
+      padding: 14px;
+    }
 
-        .alertUnit {
-            font-weight: 900;
-            font-size: 17px;
-        }
+    .caska-alert.ok {
+      border-color: rgba(18, 230, 168, 0.22);
+      background: rgba(18, 230, 168, 0.06);
+    }
 
-        .badge {
-            border-radius: 999px;
-            padding: 5px 10px;
-            font-size: 12px;
-            font-weight: 900;
-            white-space: nowrap;
-        }
+    .caska-alertTitle {
+      font-size: 15px;
+      font-weight: 900;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
 
-        .badge.high { background: rgba(255, 77, 109, 0.17); color: #ffb3c0; border: 1px solid rgba(255, 77, 109, 0.5); }
-        .badge.review { background: rgba(255, 204, 102, 0.15); color: #ffe0a1; border: 1px solid rgba(255, 204, 102, 0.5); }
-        .badge.normal { background: rgba(69, 163, 255, 0.15); color: #b9dcff; border: 1px solid rgba(69, 163, 255, 0.5); }
-        .badge.noise { background: rgba(29, 214, 166, 0.15); color: #a8ffe7; border: 1px solid rgba(29, 214, 166, 0.5); }
+    .caska-alertMeta {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 12px;
+      color: #c5d4ea;
+      font-size: 13px;
+      line-height: 1.35;
+    }
 
-        .alertMeta {
-            color: var(--muted);
-            font-size: 13px;
-            line-height: 1.55;
-        }
+    .caska-form {
+      display: grid;
+      gap: 14px;
+    }
 
-        .alertDrop {
-            font-size: 28px;
-            font-weight: 900;
-            color: #fff;
-            margin: 8px 0;
-        }
+    .caska-field label {
+      display: block;
+      color: #b9c9e2;
+      font-size: 13px;
+      font-weight: 900;
+      margin-bottom: 7px;
+    }
 
-        .configRow {
-            display: grid;
-            gap: 10px;
-        }
+    .caska-input,
+    .caska-textarea {
+      width: 100%;
+      border: 1px solid rgba(150, 166, 205, 0.28);
+      border-radius: 8px;
+      background: rgba(5, 11, 20, 0.86);
+      color: #ffffff;
+      padding: 11px 12px;
+      font: inherit;
+      outline: none;
+    }
 
-        textarea, input {
-            width: 100%;
-            background: #07101d;
-            color: var(--text);
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            padding: 10px;
-            font-family: Arial, Helvetica, sans-serif;
-        }
+    .caska-textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
 
-        textarea {
-            min-height: 74px;
-        }
+    .caska-help {
+      margin-top: 8px;
+      color: #8fa2bf;
+      font-size: 12px;
+      line-height: 1.35;
+    }
 
-        label {
-            color: var(--soft);
-            font-weight: 800;
-            font-size: 13px;
-        }
+    .caska-log {
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(4, 9, 16, 0.88);
+      padding: 14px;
+      color: #dce7f8;
+      font: 12px/1.55 Consolas, "Courier New", monospace;
+      min-height: 180px;
+      max-height: 360px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
 
-        .statusLine {
-            color: var(--muted);
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
+    .caska-status {
+      color: #b8c9e4;
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
 
-        .criticalBanner {
-            display: none;
-            border: 1px solid rgba(255, 77, 109, 0.58);
-            background: rgba(255, 77, 109, 0.14);
-            color: #ffd6de;
-            border-radius: 10px;
-            padding: 14px;
-            margin-bottom: 16px;
-            font-weight: 900;
-        }
+    .caska-muted {
+      color: var(--muted);
+    }
 
-        .log {
-            margin-top: 18px;
-            background: #02060d;
-            color: #cfe0ff;
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            padding: 12px;
-            max-height: 180px;
-            overflow: auto;
-            white-space: pre-wrap;
-            font-family: Consolas, monospace;
-            font-size: 12px;
-        }
+    @media (max-width: 1120px) {
+      .caska-app {
+        grid-template-columns: 1fr;
+      }
 
-        @media (max-width: 1100px) {
-            .app { grid-template-columns: 1fr; }
-            .sidebar { display: none; }
-            .contentGrid { grid-template-columns: 1fr; }
-            .metrics { grid-template-columns: repeat(2, 1fr); }
-            .topbar { flex-direction: column; }
-        }
-    </style>
+      .caska-sidebar {
+        position: relative;
+        min-height: auto;
+      }
+
+      .caska-content,
+      .caska-gridMetrics {
+        grid-template-columns: 1fr;
+      }
+
+      .caska-topbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .caska-clock {
+        min-width: 0;
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 <body>
+  <div class="caska-app">
+    <aside class="caska-sidebar">
+      <div class="caska-logoBox">
+        <img class="caska-logo" src="logo%20caska.png" alt="CASKA Mexico">
+      </div>
 
-<div class="app">
-    <aside class="sidebar">
-        <div class="logoBox">
-            <img src="logo%20caska.png" alt="CASKA México">
+      <nav class="caska-nav" aria-label="Secciones">
+        <div class="caska-navItem active">Resumen</div>
+        <div class="caska-navItem">Monitoreo</div>
+        <div class="caska-navItem">Alertas</div>
+        <div class="caska-navItem">Configuracion</div>
+      </nav>
+
+      <div class="caska-system">
+        <span class="caska-systemLabel">Sistema</span>
+        <div class="caska-systemState">
+          <span class="caska-dot"></span>
+          <span id="sistemaTexto">Iniciando</span>
         </div>
-
-        <div class="navItem active">Resumen</div>
-        <div class="navItem">Monitoreo</div>
-        <div class="navItem">Alertas</div>
-        <div class="navItem">Configuración</div>
-
-        <div class="systemBox">
-            <div class="systemLabel">Sistema</div>
-            <div id="estadoSidebar" class="systemStatus">Esperando API</div>
-        </div>
+      </div>
     </aside>
 
-    <main class="main">
-        <div class="topbar">
-            <div>
-                <div class="eyebrow">Operación</div>
-                <h1>Monitor de Nivel de Combustible</h1>
-                <div class="subtitle">Detección de bajas sospechosas de combustible con contexto de ignición, velocidad, RPM y rebote.</div>
-            </div>
-
-            <div class="clockCard">
-                <div id="fechaActual" class="clockDate">--/--/----</div>
-                <div id="horaActual" class="clockTime">--:--</div>
-            </div>
+    <main class="caska-main">
+      <section class="caska-topbar">
+        <div>
+          <div class="caska-kicker">Operacion</div>
+          <h1 class="caska-title">Monitor de Nivel de Combustible</h1>
+          <p class="caska-subtitle">
+            Deteccion de bajas sospechosas de combustible con contexto de ignicion, velocidad, RPM y rebote del sensor.
+          </p>
         </div>
+        <div class="caska-clock" id="reloj">--/--/----<br>--:--</div>
+      </section>
 
-        <div id="avisoCritico" class="criticalBanner"></div>
+      <section class="caska-toolbar">
+        <button class="caska-btn" id="btnProbar">Probar API</button>
+        <button class="caska-btn" id="btnHistorico">Historico 24h</button>
+        <button class="caska-btn caska-btnPrimary" id="btnIniciar">Iniciar monitoreo</button>
+        <button class="caska-btn caska-btnDanger" id="btnDetener">Detener</button>
+        <button class="caska-btn" id="btnLimpiar">Limpiar</button>
+      </section>
 
-        <div class="toolbar">
-            <button onclick="probarApiGeotab()">Probar API</button>
-            <button onclick="analizarHistorico24h()">Histórico 24h</button>
-            <button class="primary" onclick="iniciarMonitoreo()">Iniciar monitoreo</button>
-            <button class="stop" onclick="detenerMonitoreo()">Detener</button>
-            <button onclick="limpiarSalida()">Limpiar</button>
-        </div>
+      <div class="caska-status" id="estado">Estado: esperando API de MyGeotab...</div>
 
-        <div class="metrics">
-            <div class="metricCard">
-                <div class="metricTop"><span>Estado</span><span class="metricIcon">M</span></div>
-                <div id="metricEstado" class="metricValue">Inactivo</div>
-            </div>
-            <div class="metricCard">
-                <div class="metricTop"><span>Unidades revisadas</span><span class="metricIcon">U</span></div>
-                <div id="metricUnidades" class="metricValue">0</div>
-            </div>
-            <div class="metricCard">
-                <div class="metricTop"><span>Alertas críticas</span><span class="metricIcon">A</span></div>
-                <div id="metricCriticas" class="metricValue">0</div>
-            </div>
-            <div class="metricCard">
-                <div class="metricTop"><span>Ruido filtrado</span><span class="metricIcon">R</span></div>
-                <div id="metricRuido" class="metricValue">0</div>
-            </div>
-        </div>
+      <section class="caska-gridMetrics">
+        <article class="caska-card">
+          <div class="caska-cardLabel">Estado</div>
+          <div class="caska-cardValue" id="metricEstado">Inactivo</div>
+        </article>
+        <article class="caska-card">
+          <div class="caska-cardLabel">Unidades revisadas</div>
+          <div class="caska-cardValue" id="metricUnidades">0</div>
+        </article>
+        <article class="caska-card">
+          <div class="caska-cardLabel">Alertas criticas</div>
+          <div class="caska-cardValue" id="metricAlertas">0</div>
+        </article>
+        <article class="caska-card">
+          <div class="caska-cardLabel">Ruido filtrado</div>
+          <div class="caska-cardValue" id="metricRuido">0</div>
+        </article>
+      </section>
 
-        <div class="contentGrid">
-            <section class="panel">
-                <div class="panelTitle">Alertas detectadas</div>
-                <div id="statusLine" class="statusLine">Sin análisis ejecutado.</div>
-                <div id="alertList" class="alertList"></div>
-            </section>
-
-            <aside class="panel">
-                <div class="panelTitle">Configuración</div>
-                <div class="configRow">
-                    <label>
-                        <input id="enviarWebhook" type="checkbox" style="width:auto;margin-right:6px;">
-                        Enviar alertas críticas por webhook/correo
-                    </label>
-
-                    <label for="destinatariosCorreo">Destinatarios</label>
-                    <textarea id="destinatariosCorreo" placeholder="operador@cliente.com, seguridad@cliente.com"></textarea>
-
-                    <label for="webhookUrl">Webhook externo</label>
-                    <input id="webhookUrl" type="text" placeholder="https://tu-servidor.com/geotab/fuel-alert">
-
-                    <div class="statusLine">Remitente previsto: alertas@caskamexicosos.com</div>
-                    <div class="statusLine">Regla de prueba: baja >= 1.5 L en <= 60 min.</div>
+      <section class="caska-content">
+        <article class="caska-panel">
+          <div class="caska-panelHeader">
+            <h2 class="caska-panelTitle">Alertas detectadas</h2>
+            <span class="caska-pill" id="modoTexto">Modo prueba hipersensible</span>
+          </div>
+          <div class="caska-panelBody">
+            <div class="caska-alertList" id="alertasVista">
+              <div class="caska-alert ok">
+                <div class="caska-alertTitle">Sin alertas cargadas</div>
+                <div class="caska-alertMeta">
+                  <span>Ejecuta Historico 24h o inicia monitoreo.</span>
                 </div>
-            </aside>
-        </div>
+              </div>
+            </div>
+          </div>
+        </article>
 
-        <div id="logSalida" class="log"></div>
+        <aside>
+          <article class="caska-panel">
+            <div class="caska-panelHeader">
+              <h2 class="caska-panelTitle">Configuracion</h2>
+            </div>
+            <div class="caska-panelBody">
+              <div class="caska-form">
+                <div class="caska-field">
+                  <label for="umbralLitros">Caida minima en litros</label>
+                  <input class="caska-input" id="umbralLitros" type="number" min="0.5" step="0.5" value="1.5">
+                </div>
+                <div class="caska-field">
+                  <label for="ventanaMinutos">Ventana maxima en minutos</label>
+                  <input class="caska-input" id="ventanaMinutos" type="number" min="1" step="1" value="60">
+                </div>
+                <div class="caska-field">
+                  <label for="intervaloSegundos">Intervalo de monitoreo en segundos</label>
+                  <input class="caska-input" id="intervaloSegundos" type="number" min="30" step="10" value="60">
+                </div>
+                <div class="caska-field">
+                  <label for="destinatarios">Destinatarios futuros</label>
+                  <textarea class="caska-textarea" id="destinatarios" placeholder="operador@cliente.com, seguridad@cliente.com"></textarea>
+                  <div class="caska-help">Correo/webhook queda pendiente. Por ahora las alertas aparecen aqui dentro del add-in.</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <pre class="caska-log" id="logSalida"></pre>
+        </aside>
+      </section>
     </main>
-</div>
+  </div>
 
-<script>
-let geotabApi = null;
-let geotabState = null;
+  <script>
+    (function () {
+      "use strict";
 
-let monitoreoActivo = false;
-let temporizadorMonitoreo = null;
-let fechaInicioMonitoreo = null;
-let ultimoValorCombustiblePorDispositivo = {};
-let alertasProcesadas = new Set();
+      var app = {
+        api: null,
+        state: null,
+        monitoringTimer: null,
+        monitoringFrom: null,
+        lastSeenByDevice: {},
+        counters: {
+          unidades: 0,
+          alertas: 0,
+          ruido: 0
+        },
+        diagnosticIds: {
+          fuel: "DiagnosticFuelUnitsId",
+          ignition: "DiagnosticIgnitionId",
+          speed: "DiagnosticEngineRoadSpeedId",
+          rpm: "DiagnosticEngineSpeedId"
+        }
+      };
 
-let metricas = {
-    unidades: 0,
-    criticas: 0,
-    ruido: 0,
-    alertas: []
-};
+      function $(id) {
+        return document.getElementById(id);
+      }
 
-const REMITENTE_PREVISTO = "alertas@caskamexicosos.com";
-const DIAGNOSTICO_FUEL_UNITS_ID = "DiagnosticFuelUnitsId";
-const DIAGNOSTICO_IGNICION_ID = "DiagnosticIgnitionId";
-const DIAGNOSTICO_VELOCIDAD_ID = "DiagnosticEngineRoadSpeedId";
-const DIAGNOSTICO_RPM_ID = "DiagnosticEngineSpeedId";
+      function setText(id, value) {
+        var el = $(id);
+        if (el) {
+          el.textContent = value;
+        }
+      }
 
-const BAJA_MINIMA_LITROS_PRUEBA = 1.5;
-const VENTANA_MAXIMA_MINUTOS_PRUEBA = 60;
-const MINUTOS_REVISION_REBOTE = 20;
-const LIMITE_ALERTAS_POR_UNIDAD = 10;
-const INTERVALO_MONITOREO_MS = 60000;
+      function log(message) {
+        var el = $("logSalida");
+        var line = "[" + formatDateTime(new Date()) + "] " + message;
+        if (el) {
+          el.textContent += line + "\n";
+          el.scrollTop = el.scrollHeight;
+        }
+        if (window.console) {
+          console.log(message);
+        }
+      }
 
-const PRIORIDAD_CLASIFICACION = {
-    "Mas sospechosa": 1,
-    "Sospechosa": 2,
-    "Revisar": 3,
-    "Probable consumo normal": 4,
-    "Probable ruido de sensor": 5
-};
+      function setStatus(message) {
+        setText("estado", "Estado: " + message);
+        setText("sistemaTexto", app.api ? "Operativo" : "Sin API");
+        log(message);
+      }
 
-function actualizarReloj() {
-    const ahora = new Date();
-    document.getElementById("fechaActual").innerText = formatearSoloFecha(ahora);
-    document.getElementById("horaActual").innerText = formatearSoloHora(ahora);
-}
-
-setInterval(actualizarReloj, 1000);
-actualizarReloj();
-
-function actualizarEstado(texto) {
-    const estadoSidebar = document.getElementById("estadoSidebar");
-    const statusLine = document.getElementById("statusLine");
-
-    if (estadoSidebar) estadoSidebar.innerText = texto.replace("Estado: ", "");
-    if (statusLine) statusLine.innerText = texto;
-
-    console.log(texto);
-}
-
-function escribirSalida(texto) {
-    const log = document.getElementById("logSalida");
-    if (log) {
-        log.textContent += texto + "\n";
-        log.scrollTop = log.scrollHeight;
-    }
-    console.log(texto);
-}
-
-function limpiarSalida() {
-    document.getElementById("logSalida").textContent = "";
-    document.getElementById("alertList").innerHTML = "";
-    ocultarAvisoCritico();
-    resetMetricas();
-    actualizarEstado("Estado: limpio");
-}
-
-function resetMetricas() {
-    metricas = { unidades: 0, criticas: 0, ruido: 0, alertas: [] };
-    renderMetricas();
-}
-
-function renderMetricas() {
-    document.getElementById("metricEstado").innerText = monitoreoActivo ? "Activo" : "Inactivo";
-    document.getElementById("metricUnidades").innerText = metricas.unidades;
-    document.getElementById("metricCriticas").innerText = metricas.criticas;
-    document.getElementById("metricRuido").innerText = metricas.ruido;
-}
-
-function mostrarAvisoCritico(alertasCriticas) {
-    const aviso = document.getElementById("avisoCritico");
-    if (!aviso || alertasCriticas.length === 0) return;
-
-    aviso.style.display = "block";
-    aviso.innerText = "ALERTA: " + alertasCriticas.length + " posible(s) ordeña(s) de alta prioridad detectada(s).";
-}
-
-function ocultarAvisoCritico() {
-    const aviso = document.getElementById("avisoCritico");
-    if (aviso) {
-        aviso.style.display = "none";
-        aviso.innerText = "";
-    }
-}
-
-function agregarAlertasVista(alertas) {
-    const contenedor = document.getElementById("alertList");
-
-    alertas.forEach(function (alerta) {
-        metricas.alertas.push(alerta);
-
-        if (alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa") {
-            metricas.criticas += 1;
+      function formatDateTime(value) {
+        var date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) {
+          return "sin fecha";
         }
 
-        if (alerta.contexto.clasificacion === "Probable ruido de sensor") {
-            metricas.ruido += 1;
+        var day = String(date.getDate()).padStart(2, "0");
+        var month = String(date.getMonth() + 1).padStart(2, "0");
+        var year = date.getFullYear();
+        var hours = String(date.getHours()).padStart(2, "0");
+        var minutes = String(date.getMinutes()).padStart(2, "0");
+
+        return day + "/" + month + "/" + year + " " + hours + ":" + minutes;
+      }
+
+      function updateClock() {
+        var now = new Date();
+        var date = String(now.getDate()).padStart(2, "0") + "/" +
+          String(now.getMonth() + 1).padStart(2, "0") + "/" +
+          now.getFullYear();
+        var time = String(now.getHours()).padStart(2, "0") + ":" +
+          String(now.getMinutes()).padStart(2, "0");
+
+        setText("reloj", date + "\n" + time);
+      }
+
+      function readNumber(id, fallback) {
+        var el = $(id);
+        var value = el ? Number(el.value) : NaN;
+        return isFinite(value) ? value : fallback;
+      }
+
+      function renderMetrics() {
+        setText("metricEstado", app.monitoringTimer ? "Activo" : "Inactivo");
+        setText("metricUnidades", String(app.counters.unidades));
+        setText("metricAlertas", String(app.counters.alertas));
+        setText("metricRuido", String(app.counters.ruido));
+      }
+
+      function clearOutput() {
+        app.counters = { unidades: 0, alertas: 0, ruido: 0 };
+        setText("logSalida", "");
+        $("alertasVista").innerHTML =
+          '<div class="caska-alert ok">' +
+          '<div class="caska-alertTitle">Sin alertas cargadas</div>' +
+          '<div class="caska-alertMeta"><span>Ejecuta Historico 24h o inicia monitoreo.</span></div>' +
+          '</div>';
+        renderMetrics();
+        setStatus("salida limpia");
+      }
+
+      function apiCall(method, params) {
+        return new Promise(function (resolve, reject) {
+          if (!app.api || typeof app.api.call !== "function") {
+            reject(new Error("La API de MyGeotab no esta disponible."));
+            return;
+          }
+
+          app.api.call(method, params, resolve, reject);
+        });
+      }
+
+      async function getDevices(limit) {
+        return apiCall("Get", {
+          typeName: "Device",
+          search: {},
+          resultsLimit: limit || 50
+        });
+      }
+
+      async function getStatusData(deviceId, diagnosticId, fromDate, toDate, limit) {
+        return apiCall("Get", {
+          typeName: "StatusData",
+          search: {
+            deviceSearch: { id: deviceId },
+            diagnosticSearch: { id: diagnosticId },
+            fromDate: fromDate.toISOString(),
+            toDate: toDate.toISOString()
+          },
+          resultsLimit: limit || 1000
+        });
+      }
+
+      function normalizeReading(row) {
+        var value = Number(row.data);
+        return {
+          date: new Date(row.dateTime),
+          value: value,
+          raw: row
+        };
+      }
+
+      function validNumberReading(row) {
+        return row && isFinite(row.value);
+      }
+
+      function nearestReading(readings, date) {
+        if (!readings || !readings.length) {
+          return null;
         }
 
-        const card = document.createElement("div");
-        card.className = "alertCard";
+        var best = null;
+        var bestDiff = Infinity;
 
-        const badgeClass = obtenerClaseBadge(alerta.contexto.clasificacion);
+        readings.forEach(function (item) {
+          var diff = Math.abs(item.date.getTime() - date.getTime());
+          if (diff < bestDiff) {
+            best = item;
+            bestDiff = diff;
+          }
+        });
 
-        card.innerHTML =
-            '<div class="alertHead">' +
-                '<div class="alertUnit">' + escaparHtml(alerta.unidad) + '</div>' +
-                '<div class="badge ' + badgeClass + '">' + escaparHtml(alerta.contexto.clasificacion) + '</div>' +
+        return best;
+      }
+
+      function hasRebound(fuelReadings, endIndex, dropTo, minutes) {
+        var endDate = fuelReadings[endIndex].date;
+        var limitDate = new Date(endDate.getTime() + minutes * 60000);
+
+        for (var i = endIndex + 1; i < fuelReadings.length; i += 1) {
+          if (fuelReadings[i].date > limitDate) {
+            break;
+          }
+
+          if (fuelReadings[i].value >= dropTo + 1) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      function classifyAlert(alert) {
+        if (alert.rebound) {
+          return "Probable ruido de sensor";
+        }
+
+        if (alert.ignition && alert.ignition.value === 0) {
+          return "Mas sospechosa";
+        }
+
+        if ((alert.speed && alert.speed.value > 5) || (alert.rpm && alert.rpm.value > 600)) {
+          return "Probable consumo normal";
+        }
+
+        if (alert.ignition && alert.ignition.value === 1) {
+          return "Revisar";
+        }
+
+        return "Sospechosa";
+      }
+
+      function detectAlerts(device, fuelReadings, ignitionReadings, speedReadings, rpmReadings) {
+        var thresholdLiters = readNumber("umbralLitros", 1.5);
+        var windowMinutes = readNumber("ventanaMinutos", 60);
+        var alerts = [];
+
+        for (var i = 0; i < fuelReadings.length; i += 1) {
+          for (var j = i + 1; j < fuelReadings.length; j += 1) {
+            var minutes = (fuelReadings[j].date.getTime() - fuelReadings[i].date.getTime()) / 60000;
+
+            if (minutes <= 0) {
+              continue;
+            }
+
+            if (minutes > windowMinutes) {
+              break;
+            }
+
+            var drop = fuelReadings[i].value - fuelReadings[j].value;
+
+            if (drop >= thresholdLiters) {
+              var ignition = nearestReading(ignitionReadings, fuelReadings[j].date);
+              var speed = nearestReading(speedReadings, fuelReadings[j].date);
+              var rpm = nearestReading(rpmReadings, fuelReadings[j].date);
+              var rebound = hasRebound(fuelReadings, j, fuelReadings[j].value, 20);
+
+              var alert = {
+                device: device,
+                from: fuelReadings[i],
+                to: fuelReadings[j],
+                drop: drop,
+                minutes: minutes,
+                ignition: ignition,
+                speed: speed,
+                rpm: rpm,
+                rebound: rebound
+              };
+
+              alert.classification = classifyAlert(alert);
+              alerts.push(alert);
+              i = j;
+              break;
+            }
+          }
+        }
+
+        return alerts;
+      }
+
+      function addAlertsToView(alerts) {
+        var container = $("alertasVista");
+
+        if (!container) {
+          return;
+        }
+
+        if (!alerts.length && !container.querySelector(".caska-alertTitle[data-real='1']")) {
+          container.innerHTML =
+            '<div class="caska-alert ok">' +
+            '<div class="caska-alertTitle">Sin alertas en esta consulta</div>' +
+            '<div class="caska-alertMeta"><span>No se detectaron bajas que cumplan el umbral actual.</span></div>' +
+            '</div>';
+          return;
+        }
+
+        alerts.forEach(function (alert) {
+          if (container.querySelector(".caska-alert.ok")) {
+            container.innerHTML = "";
+          }
+
+          var isNoise = alert.classification === "Probable ruido de sensor";
+          var el = document.createElement("div");
+          el.className = "caska-alert" + (isNoise ? " ok" : "");
+          el.innerHTML =
+            '<div class="caska-alertTitle" data-real="1">' +
+            alert.classification + " en " + escapeHtml(alert.device.name || alert.device.id) +
             '</div>' +
-            '<div class="alertDrop">-' + alerta.baja.toFixed(2) + ' L</div>' +
-            '<div class="alertMeta">' +
-                'De ' + alerta.valorAntes + ' L a ' + alerta.valorDespues + ' L<br>' +
-                formatearFechaHora(alerta.desdeFecha) + ' - ' + formatearFechaHora(alerta.hastaFecha) + '<br>' +
-                'Ventana: ' + alerta.minutos.toFixed(1) + ' min<br>' +
-                'Ignición: ' + escaparHtml(alerta.contexto.estadoIgnicion) + '<br>' +
-                'Velocidad: ' + escaparHtml(formatearEstadistica(alerta.contexto.velocidad)) + '<br>' +
-                'RPM: ' + escaparHtml(formatearEstadistica(alerta.contexto.rpm)) + '<br>' +
-                'Rebote: ' + escaparHtml(alerta.contexto.reboteTexto) +
+            '<div class="caska-alertMeta">' +
+            '<span>Caida: <strong>' + alert.drop.toFixed(2) + ' L</strong></span>' +
+            '<span>Ventana: <strong>' + alert.minutes.toFixed(1) + ' min</strong></span>' +
+            '<span>De: <strong>' + alert.from.value.toFixed(1) + ' L</strong></span>' +
+            '<span>A: <strong>' + alert.to.value.toFixed(1) + ' L</strong></span>' +
+            '<span>Desde: ' + formatDateTime(alert.from.date) + '</span>' +
+            '<span>Hasta: ' + formatDateTime(alert.to.date) + '</span>' +
+            '<span>Ignicion: ' + formatContext(alert.ignition, "encendida", "apagada") + '</span>' +
+            '<span>Vel/RPM: ' + formatTelemetry(alert.speed, "km/h") + ' / ' + formatTelemetry(alert.rpm, "rpm") + '</span>' +
             '</div>';
 
-        contenedor.appendChild(card);
-    });
-
-    renderMetricas();
-}
-
-function obtenerClaseBadge(clasificacion) {
-    if (clasificacion === "Mas sospechosa" || clasificacion === "Sospechosa") return "high";
-    if (clasificacion === "Revisar") return "review";
-    if (clasificacion === "Probable consumo normal") return "normal";
-    return "noise";
-}
-
-function probarApiGeotab() {
-    if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavía no disponible");
-        return;
-    }
-
-    actualizarEstado("Estado: probando conexión con Geotab...");
-
-    geotabApi.call(
-        "Get",
-        { typeName: "Device", resultsLimit: 5 },
-        function (devices) {
-            escribirSalida("Conexión correcta con Geotab. Activos encontrados: " + devices.length);
-            actualizarEstado("Estado: conexión correcta");
-        },
-        function (error) {
-            escribirSalida("Error al consultar Device: " + JSON.stringify(error));
-            actualizarEstado("Estado: error al probar API");
-        }
-    );
-}
-
-function analizarHistorico24h() {
-    if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavía no disponible");
-        return;
-    }
-
-    limpiarSalida();
-    actualizarEstado("Estado: analizando histórico de 24 horas...");
-
-    geotabApi.call(
-        "Get",
-        { typeName: "Device", resultsLimit: 10 },
-        function (devices) {
-            metricas.unidades = devices.length;
-            renderMetricas();
-            consultarSiguienteUnidadHistorico(devices, 0, []);
-        },
-        function (error) {
-            escribirSalida("Error al consultar Device: " + JSON.stringify(error));
-            actualizarEstado("Estado: error al cargar activos");
-        }
-    );
-}
-
-function consultarSiguienteUnidadHistorico(devices, index, alertasCriticasGlobales) {
-    if (index >= devices.length) {
-        if (alertasCriticasGlobales.length > 0) {
-            mostrarAvisoCritico(alertasCriticasGlobales);
-            enviarAlertasPorWebhook(alertasCriticasGlobales, "historico_24h");
-        }
-
-        actualizarEstado("Estado: análisis histórico terminado");
-        return;
-    }
-
-    const device = devices[index];
-    const ahora = new Date();
-    const hace24Horas = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
-
-    consultarContextoDispositivo(device, hace24Horas, ahora, 700, function (fuelData, ignitionData, speedData, rpmData) {
-        const alertasCriticasUnidad = analizarUnidad(device, fuelData, ignitionData, speedData, rpmData);
-        alertasCriticasUnidad.forEach(function (alerta) { alertasCriticasGlobales.push(alerta); });
-        consultarSiguienteUnidadHistorico(devices, index + 1, alertasCriticasGlobales);
-    });
-}
-
-function iniciarMonitoreo() {
-    if (!geotabApi) {
-        actualizarEstado("Estado: API Geotab todavía no disponible");
-        return;
-    }
-
-    detenerMonitoreo();
-    limpiarSalida();
-
-    monitoreoActivo = true;
-    fechaInicioMonitoreo = new Date();
-    ultimoValorCombustiblePorDispositivo = {};
-    alertasProcesadas.clear();
-
-    escribirSalida("Monitoreo iniciado desde: " + formatearFechaHora(fechaInicioMonitoreo.toISOString()));
-    actualizarEstado("Estado: monitoreo activo");
-    renderMetricas();
-
-    ejecutarCicloMonitoreo();
-
-    temporizadorMonitoreo = setInterval(function () {
-        if (monitoreoActivo) ejecutarCicloMonitoreo();
-    }, INTERVALO_MONITOREO_MS);
-}
-
-function detenerMonitoreo() {
-    monitoreoActivo = false;
-
-    if (temporizadorMonitoreo) {
-        clearInterval(temporizadorMonitoreo);
-        temporizadorMonitoreo = null;
-    }
-
-    actualizarEstado("Estado: monitoreo detenido");
-    renderMetricas();
-}
-
-function ejecutarCicloMonitoreo() {
-    if (!monitoreoActivo || !fechaInicioMonitoreo) return;
-
-    const ahora = new Date();
-    const desde = new Date(Math.max(fechaInicioMonitoreo.getTime(), ahora.getTime() - 10 * 60 * 1000));
-
-    geotabApi.call(
-        "Get",
-        { typeName: "Device", resultsLimit: 10 },
-        function (devices) {
-            metricas.unidades = devices.length;
-            renderMetricas();
-            escribirSalida("Ciclo monitoreo: " + formatearFechaHora(ahora.toISOString()));
-            consultarSiguienteUnidadMonitoreo(devices, 0, desde, ahora, []);
-        },
-        function (error) {
-            escribirSalida("Error al consultar Device en monitoreo: " + JSON.stringify(error));
-        }
-    );
-}
-
-function consultarSiguienteUnidadMonitoreo(devices, index, desde, hasta, alertasCriticasGlobales) {
-    if (!monitoreoActivo) return;
-
-    if (index >= devices.length) {
-        if (alertasCriticasGlobales.length > 0) {
-            mostrarAvisoCritico(alertasCriticasGlobales);
-            enviarAlertasPorWebhook(alertasCriticasGlobales, "monitoreo");
-        }
-
-        actualizarEstado("Estado: monitoreo activo");
-        return;
-    }
-
-    const device = devices[index];
-
-    consultarContextoDispositivo(device, desde, hasta, 100, function (fuelData, ignitionData, speedData, rpmData) {
-        const alertas = analizarUnidadMonitoreo(device, fuelData, ignitionData, speedData, rpmData);
-        alertas.forEach(function (alerta) { alertasCriticasGlobales.push(alerta); });
-        consultarSiguienteUnidadMonitoreo(devices, index + 1, desde, hasta, alertasCriticasGlobales);
-    });
-}
-
-function analizarUnidadMonitoreo(device, fuelData, ignitionData, speedData, rpmData) {
-    if (!fuelData || fuelData.length === 0) return [];
-
-    const deviceId = device.id;
-    let datosParaAnalizar = fuelData.slice();
-
-    if (ultimoValorCombustiblePorDispositivo[deviceId]) {
-        datosParaAnalizar.unshift(ultimoValorCombustiblePorDispositivo[deviceId]);
-    }
-
-    ultimoValorCombustiblePorDispositivo[deviceId] = fuelData[fuelData.length - 1];
-
-    const alertas = detectarAlertas(device, datosParaAnalizar, ignitionData, speedData, rpmData);
-    const alertasNuevas = [];
-
-    alertas.forEach(function (alerta) {
-        const idAlerta = crearIdAlerta(alerta);
-        if (alertasProcesadas.has(idAlerta)) return;
-        alertasProcesadas.add(idAlerta);
-        alertasNuevas.push(alerta);
-    });
-
-    if (alertasNuevas.length > 0) {
-        ordenarAlertasPorPrioridad(alertasNuevas);
-        agregarAlertasVista(alertasNuevas.slice(0, LIMITE_ALERTAS_POR_UNIDAD));
-        escribirSalida("Alertas nuevas en monitoreo: " + alertasNuevas.length);
-    }
-
-    return alertasNuevas.filter(function (alerta) {
-        return alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa";
-    });
-}
-
-function consultarContextoDispositivo(device, desde, hasta, limite, callback) {
-    consultarStatusData(device, DIAGNOSTICO_FUEL_UNITS_ID, desde, hasta, limite, function (fuelData) {
-        consultarStatusData(device, DIAGNOSTICO_IGNICION_ID, desde, hasta, limite, function (ignitionData) {
-            consultarStatusData(device, DIAGNOSTICO_VELOCIDAD_ID, desde, hasta, limite, function (speedData) {
-                consultarStatusData(device, DIAGNOSTICO_RPM_ID, desde, hasta, limite, function (rpmData) {
-                    callback(fuelData, ignitionData, speedData, rpmData);
-                });
-            });
+          container.prepend(el);
         });
-    });
-}
+      }
 
-function consultarStatusData(device, diagnosticId, desde, hasta, limite, callback) {
-    geotabApi.call(
-        "Get",
-        {
-            typeName: "StatusData",
-            search: {
-                deviceSearch: { id: device.id },
-                diagnosticSearch: { id: diagnosticId },
-                fromDate: desde.toISOString(),
-                toDate: hasta.toISOString()
-            },
-            resultsLimit: limite
-        },
-        function (datos) {
-            datos.sort(function (a, b) {
-                return new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime();
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function formatContext(reading, onText, offText) {
+        if (!reading) {
+          return "sin datos";
+        }
+
+        var state = reading.value === 1 ? onText : offText;
+        return state + " en " + formatDateTime(reading.date);
+      }
+
+      function formatTelemetry(reading, unit) {
+        if (!reading || !isFinite(reading.value)) {
+          return "sin datos";
+        }
+
+        return reading.value.toFixed(0) + " " + unit;
+      }
+
+      async function analyzeRange(fromDate, toDate, label) {
+        if (!app.api) {
+          setStatus("API de MyGeotab no disponible todavia");
+          return;
+        }
+
+        setStatus("analizando " + label + "...");
+        var devices = await getDevices(50);
+        var allAlerts = [];
+        var noiseCount = 0;
+
+        app.counters.unidades = devices.length;
+        renderMetrics();
+
+        for (var d = 0; d < devices.length; d += 1) {
+          var device = devices[d];
+
+          try {
+            var fuelRows = await getStatusData(device.id, app.diagnosticIds.fuel, fromDate, toDate, 1000);
+            var ignitionRows = await getStatusData(device.id, app.diagnosticIds.ignition, fromDate, toDate, 300);
+            var speedRows = await getStatusData(device.id, app.diagnosticIds.speed, fromDate, toDate, 300);
+            var rpmRows = await getStatusData(device.id, app.diagnosticIds.rpm, fromDate, toDate, 300);
+
+            var fuel = fuelRows.map(normalizeReading).filter(validNumberReading).sort(sortByDate);
+            var ignition = ignitionRows.map(normalizeReading).filter(validNumberReading).sort(sortByDate);
+            var speed = speedRows.map(normalizeReading).filter(validNumberReading).sort(sortByDate);
+            var rpm = rpmRows.map(normalizeReading).filter(validNumberReading).sort(sortByDate);
+
+            log("Unidad " + (device.name || device.id) + ": combustible " + fuel.length + ", ignicion " + ignition.length);
+
+            var alerts = detectAlerts(device, fuel, ignition, speed, rpm);
+            alerts.forEach(function (alert) {
+              if (alert.classification === "Probable ruido de sensor") {
+                noiseCount += 1;
+              } else {
+                allAlerts.push(alert);
+              }
             });
-            callback(datos);
-        },
-        function (error) {
-            escribirSalida("Error al consultar " + diagnosticId + " para " + (device.name || device.id) + ": " + JSON.stringify(error));
-            callback([]);
+          } catch (error) {
+            log("Error en " + (device.name || device.id) + ": " + error.message);
+          }
         }
-    );
-}
 
-function analizarUnidad(device, fuelData, ignitionData, speedData, rpmData) {
-    if (fuelData.length < 2) return [];
+        app.counters.alertas += allAlerts.length;
+        app.counters.ruido += noiseCount;
+        renderMetrics();
+        addAlertsToView(allAlerts);
+        setStatus("analisis " + label + " terminado");
+      }
 
-    let alertas = detectarAlertas(device, fuelData, ignitionData, speedData, rpmData);
+      function sortByDate(a, b) {
+        return a.date.getTime() - b.date.getTime();
+      }
 
-    if (alertas.length === 0) return [];
-
-    ordenarAlertasPorPrioridad(alertas);
-    agregarAlertasVista(alertas.slice(0, LIMITE_ALERTAS_POR_UNIDAD));
-
-    return alertas.filter(function (alerta) {
-        return alerta.contexto.clasificacion === "Mas sospechosa" || alerta.contexto.clasificacion === "Sospechosa";
-    });
-}
-
-function detectarAlertas(device, fuelData, ignitionData, speedData, rpmData) {
-    let alertas = [];
-
-    for (let i = 1; i < fuelData.length; i++) {
-        const anterior = fuelData[i - 1];
-        const actual = fuelData[i];
-
-        const valorAntes = Number(anterior.data);
-        const valorDespues = Number(actual.data);
-
-        if (isNaN(valorAntes) || isNaN(valorDespues)) continue;
-
-        const baja = valorAntes - valorDespues;
-        const minutos = diferenciaMinutos(anterior.dateTime, actual.dateTime);
-
-        if (baja >= BAJA_MINIMA_LITROS_PRUEBA && minutos <= VENTANA_MAXIMA_MINUTOS_PRUEBA) {
-            const contexto = construirContextoAlerta(anterior, actual, fuelData, ignitionData, speedData, rpmData);
-
-            alertas.push({
-                unidad: device.name || device.id,
-                deviceId: device.id,
-                desdeFecha: anterior.dateTime,
-                hastaFecha: actual.dateTime,
-                valorAntes: valorAntes,
-                valorDespues: valorDespues,
-                baja: baja,
-                minutos: minutos,
-                contexto: contexto
-            });
+      async function testApi() {
+        try {
+          var devices = await getDevices(10);
+          app.counters.unidades = devices.length;
+          renderMetrics();
+          setStatus("conexion correcta. Activos encontrados: " + devices.length);
+        } catch (error) {
+          setStatus("error probando API: " + error.message);
         }
-    }
+      }
 
-    return alertas;
-}
+      function analyze24h() {
+        var toDate = new Date();
+        var fromDate = new Date(toDate.getTime() - 24 * 60 * 60 * 1000);
+        analyzeRange(fromDate, toDate, "historico 24h").catch(function (error) {
+          setStatus("error en historico 24h: " + error.message);
+        });
+      }
 
-function construirContextoAlerta(fuelAntes, fuelDespues, fuelData, ignitionData, speedData, rpmData) {
-    const desde = new Date(fuelAntes.dateTime);
-    const hasta = new Date(fuelDespues.dateTime);
-
-    const velocidadIntervalo = filtrarPorIntervalo(speedData, desde, hasta);
-    const rpmIntervalo = filtrarPorIntervalo(rpmData, desde, hasta);
-
-    const estadoIgnicion = estimarEstadoIgnicion(ignitionData, desde, hasta);
-    const velocidad = estadisticasNumericas(velocidadIntervalo);
-    const rpm = estadisticasNumericas(rpmIntervalo);
-    const rebote = detectarRebote(fuelDespues, fuelData);
-
-    return clasificarAlerta({ estadoIgnicion: estadoIgnicion, velocidad: velocidad, rpm: rpm, rebote: rebote });
-}
-
-function clasificarAlerta(contexto) {
-    const hayVelocidad = contexto.velocidad.tieneDatos && contexto.velocidad.max > 5;
-    const hayRpm = contexto.rpm.tieneDatos && contexto.rpm.max > 900;
-    const sinDatosMovimiento = !contexto.velocidad.tieneDatos && !contexto.rpm.tieneDatos;
-
-    let clasificacion = "Sospechosa";
-    let motivo = "Baja de combustible sin explicacion clara por movimiento o rebote.";
-
-    if (contexto.rebote.hayRebote) {
-        clasificacion = "Probable ruido de sensor";
-        motivo = "El nivel de combustible se recupero despues de la baja.";
-    } else if (hayVelocidad || hayRpm) {
-        clasificacion = "Probable consumo normal";
-        motivo = "Hay velocidad o RPM durante el intervalo.";
-    } else if (sinDatosMovimiento && contexto.estadoIgnicion === "encendida") {
-        clasificacion = "Revisar";
-        motivo = "Ignicion encendida, sin datos de velocidad/RPM.";
-    } else if (contexto.estadoIgnicion === "apagada") {
-        clasificacion = "Mas sospechosa";
-        motivo = "Baja con ignicion apagada y sin recuperacion posterior.";
-    } else if (contexto.estadoIgnicion === "encendida") {
-        clasificacion = "Revisar";
-        motivo = "Ignicion encendida, pero movimiento no explica la baja.";
-    }
-
-    return {
-        clasificacion: clasificacion,
-        motivo: motivo,
-        estadoIgnicion: contexto.estadoIgnicion,
-        velocidad: contexto.velocidad,
-        rpm: contexto.rpm,
-        reboteTexto: contexto.rebote.texto
-    };
-}
-
-function ordenarAlertasPorPrioridad(alertas) {
-    alertas.sort(function (a, b) {
-        const prioridadA = PRIORIDAD_CLASIFICACION[a.contexto.clasificacion] || 99;
-        const prioridadB = PRIORIDAD_CLASIFICACION[b.contexto.clasificacion] || 99;
-        if (prioridadA !== prioridadB) return prioridadA - prioridadB;
-        if (b.baja !== a.baja) return b.baja - a.baja;
-        return new Date(a.desdeFecha).getTime() - new Date(b.desdeFecha).getTime();
-    });
-}
-
-function filtrarPorIntervalo(datos, desde, hasta) {
-    return datos.filter(function (dato) {
-        const fecha = new Date(dato.dateTime);
-        return fecha >= desde && fecha <= hasta;
-    });
-}
-
-function estadisticasNumericas(datos) {
-    const valores = datos.map(function (dato) { return Number(dato.data); }).filter(function (valor) { return !isNaN(valor); });
-
-    if (valores.length === 0) return { tieneDatos: false, max: null, prom: null, cantidad: 0 };
-
-    const suma = valores.reduce(function (acc, valor) { return acc + valor; }, 0);
-    const max = Math.max.apply(null, valores);
-
-    return { tieneDatos: true, max: max, prom: suma / valores.length, cantidad: valores.length };
-}
-
-function formatearEstadistica(estadistica) {
-    if (!estadistica || !estadistica.tieneDatos) return "sin datos";
-    return estadistica.max.toFixed(1) + " / " + estadistica.prom.toFixed(1) + " (" + estadistica.cantidad + " lecturas)";
-}
-
-function estimarEstadoIgnicion(ignitionData, desde, hasta) {
-    if (!ignitionData || ignitionData.length === 0) return "sin dato";
-
-    let ultimoAntes = null;
-    let eventosDentro = [];
-
-    ignitionData.forEach(function (dato) {
-        const fecha = new Date(dato.dateTime);
-        if (fecha <= desde) {
-            if (!ultimoAntes || fecha > new Date(ultimoAntes.dateTime)) ultimoAntes = dato;
+      function startMonitoring() {
+        if (app.monitoringTimer) {
+          setStatus("monitoreo ya estaba activo");
+          return;
         }
-        if (fecha >= desde && fecha <= hasta) eventosDentro.push(dato);
-    });
 
-    if (eventosDentro.length > 0) {
-        const ultimoDentro = eventosDentro[eventosDentro.length - 1];
-        return Number(ultimoDentro.data) === 1 ? "encendida" : "apagada";
-    }
+        app.monitoringFrom = new Date();
+        setStatus("monitoreo iniciado desde " + formatDateTime(app.monitoringFrom));
 
-    if (ultimoAntes) return Number(ultimoAntes.data) === 1 ? "encendida" : "apagada";
+        runMonitoringCycle();
+        app.monitoringTimer = window.setInterval(runMonitoringCycle, readNumber("intervaloSegundos", 60) * 1000);
+        renderMetrics();
+      }
 
-    return "sin dato";
-}
-
-function detectarRebote(fuelDespues, fuelData) {
-    const fechaBaja = new Date(fuelDespues.dateTime);
-    const valorDespues = Number(fuelDespues.data);
-    const limite = new Date(fechaBaja.getTime() + MINUTOS_REVISION_REBOTE * 60000);
-
-    const posteriores = fuelData.filter(function (dato) {
-        const fecha = new Date(dato.dateTime);
-        return fecha > fechaBaja && fecha <= limite;
-    });
-
-    let maxPosterior = valorDespues;
-
-    posteriores.forEach(function (dato) {
-        const valor = Number(dato.data);
-        if (!isNaN(valor) && valor > maxPosterior) maxPosterior = valor;
-    });
-
-    const recuperacion = maxPosterior - valorDespues;
-
-    if (recuperacion >= 1.0) {
-        return { hayRebote: true, texto: "si, recupero " + recuperacion.toFixed(2) + " L" };
-    }
-
-    return { hayRebote: false, texto: "no" };
-}
-
-function enviarAlertasPorWebhook(alertas, modo) {
-    const configuracion = obtenerConfiguracionAlertas();
-
-    if (!configuracion.enviarWebhook || !configuracion.webhookUrl || alertas.length === 0) return;
-
-    fetch(configuracion.webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            origen: "Monitor de Nivel de Combustible",
-            modo: modo,
-            fechaEnvio: new Date().toISOString(),
-            destinatarios: configuracion.destinatarios,
-            alertas: alertas.map(prepararAlertaParaEnvio)
-        })
-    }).catch(function (error) {
-        escribirSalida("No se pudo enviar alerta al webhook: " + error);
-    });
-}
-
-function prepararAlertaParaEnvio(alerta) {
-    return {
-        unidad: alerta.unidad,
-        deviceId: alerta.deviceId,
-        clasificacion: alerta.contexto.clasificacion,
-        motivo: alerta.contexto.motivo,
-        bajaLitros: Number(alerta.baja.toFixed(2)),
-        valorAntesLitros: alerta.valorAntes,
-        valorDespuesLitros: alerta.valorDespues,
-        ventanaMinutos: Number(alerta.minutos.toFixed(1)),
-        desde: formatearFechaHora(alerta.desdeFecha),
-        hasta: formatearFechaHora(alerta.hastaFecha),
-        ignicion: alerta.contexto.estadoIgnicion,
-        rebote: alerta.contexto.reboteTexto
-    };
-}
-
-function obtenerConfiguracionAlertas() {
-    const enviarWebhook = document.getElementById("enviarWebhook").checked;
-    const webhookUrl = document.getElementById("webhookUrl").value.trim();
-    const destinatariosTexto = document.getElementById("destinatariosCorreo").value.trim();
-
-    const destinatarios = destinatariosTexto.split(/[,\n;]/).map(function (correo) { return correo.trim(); }).filter(function (correo) { return correo.length > 0; });
-
-    return { enviarWebhook: enviarWebhook, webhookUrl: webhookUrl, destinatarios: destinatarios };
-}
-
-function crearIdAlerta(alerta) {
-    return [alerta.deviceId, alerta.desdeFecha, alerta.hastaFecha, alerta.valorAntes, alerta.valorDespues].join("|");
-}
-
-function diferenciaMinutos(fechaA, fechaB) {
-    return Math.abs(new Date(fechaB).getTime() - new Date(fechaA).getTime()) / 60000;
-}
-
-function formatearFechaHora(fechaTexto) {
-    const fecha = new Date(fechaTexto);
-    if (isNaN(fecha.getTime())) return fechaTexto;
-
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const anio = fecha.getFullYear();
-    const hora = String(fecha.getHours()).padStart(2, "0");
-    const minuto = String(fecha.getMinutes()).padStart(2, "0");
-
-    return dia + "/" + mes + "/" + anio + " " + hora + ":" + minuto;
-}
-
-function formatearSoloFecha(fecha) {
-    const dia = String(fecha.getDate()).padStart(2, "0");
-    const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-    const anio = fecha.getFullYear();
-    return dia + "/" + mes + "/" + anio;
-}
-
-function formatearSoloHora(fecha) {
-    const hora = String(fecha.getHours()).padStart(2, "0");
-    const minuto = String(fecha.getMinutes()).padStart(2, "0");
-    return hora + ":" + minuto;
-}
-
-function escaparHtml(texto) {
-    return String(texto)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function crearModuloAddIn() {
-    return {
-        initialize: function (api, state, callback) {
-            geotabApi = api;
-            geotabState = state;
-            actualizarEstado("Estado: API Geotab inicializada");
-            callback();
-        },
-
-        focus: function (api, state) {
-            geotabApi = api;
-            geotabState = state;
-            actualizarEstado("Estado: Add-In activo");
-        },
-
-        blur: function () {
-            console.log("Blur ejecutado");
+      function stopMonitoring() {
+        if (app.monitoringTimer) {
+          window.clearInterval(app.monitoringTimer);
+          app.monitoringTimer = null;
         }
-    };
-}
 
-window.probarApiGeotab = probarApiGeotab;
-window.analizarHistorico24h = analizarHistorico24h;
-window.iniciarMonitoreo = iniciarMonitoreo;
-window.detenerMonitoreo = detenerMonitoreo;
-window.limpiarSalida = limpiarSalida;
+        setStatus("monitoreo detenido");
+        renderMetrics();
+      }
 
-geotab.addin.caskaFuelDiagnostics = crearModuloAddIn;
-geotab.addin.caska_fuel_diagnostics = crearModuloAddIn;
-geotab.addin.caskaGeotabFuelAlerts = crearModuloAddIn;
-geotab.addin.caska_geotab_fuel_alerts = crearModuloAddIn;
+      function runMonitoringCycle() {
+        var toDate = new Date();
+        var fromDate = app.monitoringFrom || new Date(toDate.getTime() - 10 * 60000);
 
-actualizarEstado("Estado: código cargado, esperando API de MyGeotab...");
-renderMetricas();
-</script>
+        analyzeRange(fromDate, toDate, "monitoreo").then(function () {
+          app.monitoringFrom = toDate;
+        }).catch(function (error) {
+          setStatus("error en monitoreo: " + error.message);
+        });
+      }
 
+      function bindEvents() {
+        $("btnProbar").addEventListener("click", testApi);
+        $("btnHistorico").addEventListener("click", analyze24h);
+        $("btnIniciar").addEventListener("click", startMonitoring);
+        $("btnDetener").addEventListener("click", stopMonitoring);
+        $("btnLimpiar").addEventListener("click", clearOutput);
+      }
+
+      function initDom() {
+        bindEvents();
+        updateClock();
+        window.setInterval(updateClock, 1000);
+        renderMetrics();
+
+        if (window.api && !app.api) {
+          app.api = window.api;
+          setStatus("API detectada por variable global");
+        } else {
+          setStatus("interfaz lista, esperando inicializacion de MyGeotab");
+        }
+      }
+
+      function createAddIn() {
+        return {
+          initialize: function (api, state, callback) {
+            app.api = api;
+            app.state = state;
+            setStatus("Add-In activo");
+            if (typeof callback === "function") {
+              callback();
+            }
+          },
+          focus: function (api, state) {
+            app.api = api || app.api;
+            app.state = state || app.state;
+            setStatus("pantalla enfocada");
+          },
+          blur: function () {
+            log("Pantalla sin foco");
+          }
+        };
+      }
+
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initDom);
+      } else {
+        initDom();
+      }
+
+      window.geotab = window.geotab || {};
+      window.geotab.addin = window.geotab.addin || {};
+      window.geotab.addin.caskaFuelDiagnostics = createAddIn;
+      window.geotab.addin.caska_fuel_diagnostics = createAddIn;
+      window.geotab.addin.caskaGeotabFuelAlerts = createAddIn;
+      window.geotab.addin.caska_geotab_fuel_alerts = createAddIn;
+    }());
+  </script>
 </body>
 </html>

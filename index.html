@@ -4,407 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Monitor de Nivel de Combustible</title>
-  <style>
-    html,
-    body {
-      margin: 0 !important;
-      padding: 0 !important;
-      min-height: 100%;
-      background: #07101c !important;
-      color: #f7fbff !important;
-      font-family: Inter, "Segoe UI", Arial, sans-serif !important;
-    }
-
-    .caska-app,
-    .caska-app * {
-      box-sizing: border-box;
-    }
-
-    .caska-app {
-      --bg: #07101c;
-      --sidebar: #050b14;
-      --panel: #101b2d;
-      --panel-2: #14223a;
-      --line: rgba(164, 180, 205, 0.2);
-      --text: #f7fbff;
-      --muted: #a9bad2;
-      --soft: #d8e4f6;
-      --accent: #6f63ff;
-      --accent-2: #12e6a8;
-      --danger: #ff5470;
-      --warning: #f6b73c;
-      --blue: #39a6ff;
-      display: grid;
-      grid-template-columns: 280px minmax(0, 1fr);
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 72% 0%, rgba(111, 99, 255, 0.28), transparent 34%),
-        linear-gradient(135deg, #07101c 0%, #0c1424 52%, #10113a 100%);
-      color: var(--text);
-    }
-
-    .caska-sidebar {
-      min-height: 100vh;
-      background: rgba(5, 11, 20, 0.94);
-      border-right: 1px solid var(--line);
-      padding: 28px 22px;
-      position: sticky;
-      top: 0;
-    }
-
-    .caska-logoBox {
-      padding-bottom: 28px;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 26px;
-    }
-
-    .caska-logo {
-      width: 190px;
-      max-width: 100%;
-      display: block;
-      border-radius: 6px;
-      background: #2c2c2c;
-    }
-
-    .caska-nav {
-      display: grid;
-      gap: 9px;
-      margin-bottom: 26px;
-    }
-
-    .caska-navItem {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 13px 14px;
-      border-radius: 8px;
-      color: #c8d5ea;
-      font-size: 15px;
-      font-weight: 700;
-      border: 1px solid transparent;
-    }
-
-    .caska-navItem.active {
-      background: linear-gradient(135deg, rgba(111, 99, 255, 0.92), rgba(48, 42, 137, 0.92));
-      border-color: rgba(160, 153, 255, 0.35);
-      color: #ffffff;
-    }
-
-    .caska-system {
-      margin-top: 28px;
-      padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(16, 27, 45, 0.78);
-    }
-
-    .caska-systemLabel {
-      display: block;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 800;
-      margin-bottom: 7px;
-    }
-
-    .caska-systemState {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--accent-2);
-      font-weight: 900;
-    }
-
-    .caska-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--accent-2);
-      box-shadow: 0 0 0 4px rgba(18, 230, 168, 0.14);
-    }
-
-    .caska-main {
-      min-width: 0;
-      padding: 38px 40px 48px;
-    }
-
-    .caska-topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 28px;
-    }
-
-    .caska-kicker {
-      color: var(--accent);
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: 0;
-      text-transform: uppercase;
-      margin-bottom: 10px;
-    }
-
-    .caska-title {
-      margin: 0;
-      font-size: 42px;
-      line-height: 1.05;
-      font-weight: 900;
-      color: var(--text);
-    }
-
-    .caska-subtitle {
-      margin: 14px 0 0;
-      color: #b8c9e4;
-      font-size: 16px;
-      max-width: 920px;
-    }
-
-    .caska-clock {
-      min-width: 220px;
-      text-align: center;
-      padding: 16px 20px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(10, 18, 31, 0.72);
-      color: #dfe9fb;
-      font-weight: 800;
-      line-height: 1.35;
-    }
-
-    .caska-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin: 22px 0 26px;
-    }
-
-    .caska-btn {
-      appearance: none;
-      border: 1px solid rgba(150, 166, 205, 0.34);
-      border-radius: 8px;
-      background: rgba(15, 25, 43, 0.86);
-      color: #ffffff;
-      padding: 11px 14px;
-      min-height: 42px;
-      font-size: 14px;
-      font-weight: 800;
-      cursor: pointer;
-    }
-
-    .caska-btn:hover {
-      border-color: rgba(255, 255, 255, 0.52);
-      background: rgba(27, 42, 70, 0.95);
-    }
-
-    .caska-btnPrimary {
-      background: linear-gradient(135deg, #7468ff, #3b33ad);
-      border-color: rgba(180, 176, 255, 0.42);
-    }
-
-    .caska-btnDanger {
-      background: rgba(255, 84, 112, 0.14);
-      border-color: rgba(255, 84, 112, 0.5);
-      color: #ffdce3;
-    }
-
-    .caska-gridMetrics {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(150px, 1fr));
-      gap: 16px;
-      margin-bottom: 22px;
-    }
-
-    .caska-card,
-    .caska-panel {
-      border: 1px solid var(--line);
-      background: rgba(16, 27, 45, 0.78);
-      border-radius: 8px;
-      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22);
-    }
-
-    .caska-card {
-      padding: 20px;
-      min-height: 128px;
-    }
-
-    .caska-cardLabel {
-      color: #aebfda;
-      font-size: 13px;
-      font-weight: 900;
-      text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-
-    .caska-cardValue {
-      font-size: 38px;
-      line-height: 1;
-      font-weight: 900;
-      color: #ffffff;
-    }
-
-    .caska-content {
-      display: grid;
-      grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.75fr);
-      gap: 16px;
-      align-items: start;
-    }
-
-    .caska-panelHeader {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line);
-    }
-
-    .caska-panelTitle {
-      margin: 0;
-      font-size: 17px;
-      font-weight: 900;
-    }
-
-    .caska-pill {
-      display: inline-flex;
-      align-items: center;
-      min-height: 28px;
-      padding: 5px 10px;
-      border-radius: 999px;
-      background: rgba(18, 230, 168, 0.12);
-      color: #7fffd2;
-      border: 1px solid rgba(18, 230, 168, 0.28);
-      font-size: 12px;
-      font-weight: 900;
-    }
-
-    .caska-panelBody {
-      padding: 18px 20px 20px;
-    }
-
-    .caska-alertList {
-      display: grid;
-      gap: 12px;
-      max-height: 480px;
-      overflow: auto;
-      padding-right: 4px;
-    }
-
-    .caska-alert {
-      border: 1px solid rgba(255, 84, 112, 0.32);
-      background: rgba(255, 84, 112, 0.08);
-      border-radius: 8px;
-      padding: 14px;
-    }
-
-    .caska-alert.ok {
-      border-color: rgba(18, 230, 168, 0.22);
-      background: rgba(18, 230, 168, 0.06);
-    }
-
-    .caska-alertTitle {
-      font-size: 15px;
-      font-weight: 900;
-      margin-bottom: 8px;
-      color: #ffffff;
-    }
-
-    .caska-alertMeta {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px 12px;
-      color: #c5d4ea;
-      font-size: 13px;
-      line-height: 1.35;
-    }
-
-    .caska-form {
-      display: grid;
-      gap: 14px;
-    }
-
-    .caska-field label {
-      display: block;
-      color: #b9c9e2;
-      font-size: 13px;
-      font-weight: 900;
-      margin-bottom: 7px;
-    }
-
-    .caska-input,
-    .caska-textarea {
-      width: 100%;
-      border: 1px solid rgba(150, 166, 205, 0.28);
-      border-radius: 8px;
-      background: rgba(5, 11, 20, 0.86);
-      color: #ffffff;
-      padding: 11px 12px;
-      font: inherit;
-      outline: none;
-    }
-
-    .caska-textarea {
-      min-height: 76px;
-      resize: vertical;
-    }
-
-    .caska-help {
-      margin-top: 8px;
-      color: #8fa2bf;
-      font-size: 12px;
-      line-height: 1.35;
-    }
-
-    .caska-log {
-      margin-top: 16px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(4, 9, 16, 0.88);
-      padding: 14px;
-      color: #dce7f8;
-      font: 12px/1.55 Consolas, "Courier New", monospace;
-      min-height: 180px;
-      max-height: 360px;
-      overflow: auto;
-      white-space: pre-wrap;
-    }
-
-    .caska-status {
-      color: #b8c9e4;
-      font-size: 14px;
-      font-weight: 800;
-      margin-bottom: 12px;
-    }
-
-    .caska-muted {
-      color: var(--muted);
-    }
-
-    @media (max-width: 1120px) {
-      .caska-app {
-        grid-template-columns: 1fr;
-      }
-
-      .caska-sidebar {
-        position: relative;
-        min-height: auto;
-      }
-
-      .caska-content,
-      .caska-gridMetrics {
-        grid-template-columns: 1fr;
-      }
-
-      .caska-topbar {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
-      .caska-clock {
-        min-width: 0;
-        width: 100%;
-      }
-    }
-  </style>
+  <link rel="stylesheet" href="styles.css?v=14">
 </head>
 <body>
   <div class="caska-app">
@@ -438,15 +38,15 @@
             Deteccion de bajas sospechosas de combustible con contexto de ignicion, velocidad, RPM y rebote del sensor.
           </p>
         </div>
-        <div class="caska-clock" id="reloj">--/--/----<br>--:--</div>
+        <div class="caska-clock" id="reloj">--/--/----&#10;--:--</div>
       </section>
 
       <section class="caska-toolbar">
-        <button class="caska-btn" id="btnProbar">Probar API</button>
-        <button class="caska-btn" id="btnHistorico">Historico 24h</button>
-        <button class="caska-btn caska-btnPrimary" id="btnIniciar">Iniciar monitoreo</button>
-        <button class="caska-btn caska-btnDanger" id="btnDetener">Detener</button>
-        <button class="caska-btn" id="btnLimpiar">Limpiar</button>
+        <button class="caska-btn" id="btnProbar" type="button">Probar API</button>
+        <button class="caska-btn" id="btnHistorico" type="button">Historico 24h</button>
+        <button class="caska-btn caska-btnPrimary" id="btnIniciar" type="button">Iniciar monitoreo</button>
+        <button class="caska-btn caska-btnDanger" id="btnDetener" type="button">Detener</button>
+        <button class="caska-btn" id="btnLimpiar" type="button">Limpiar</button>
       </section>
 
       <div class="caska-status" id="estado">Estado: esperando API de MyGeotab...</div>
@@ -531,7 +131,6 @@
         state: null,
         monitoringTimer: null,
         monitoringFrom: null,
-        lastSeenByDevice: {},
         counters: {
           unidades: 0,
           alertas: 0,
@@ -545,33 +144,15 @@
         }
       };
 
-      function $(id) {
+      function getEl(id) {
         return document.getElementById(id);
       }
 
       function setText(id, value) {
-        var el = $(id);
+        var el = getEl(id);
         if (el) {
           el.textContent = value;
         }
-      }
-
-      function log(message) {
-        var el = $("logSalida");
-        var line = "[" + formatDateTime(new Date()) + "] " + message;
-        if (el) {
-          el.textContent += line + "\n";
-          el.scrollTop = el.scrollHeight;
-        }
-        if (window.console) {
-          console.log(message);
-        }
-      }
-
-      function setStatus(message) {
-        setText("estado", "Estado: " + message);
-        setText("sistemaTexto", app.api ? "Operativo" : "Sin API");
-        log(message);
       }
 
       function formatDateTime(value) {
@@ -589,6 +170,24 @@
         return day + "/" + month + "/" + year + " " + hours + ":" + minutes;
       }
 
+      function log(message) {
+        var el = getEl("logSalida");
+        var line = "[" + formatDateTime(new Date()) + "] " + message;
+        if (el) {
+          el.textContent += line + "\n";
+          el.scrollTop = el.scrollHeight;
+        }
+        if (window.console && window.console.log) {
+          window.console.log(message);
+        }
+      }
+
+      function setStatus(message) {
+        setText("estado", "Estado: " + message);
+        setText("sistemaTexto", app.api ? "Operativo" : "Sin API");
+        log(message);
+      }
+
       function updateClock() {
         var now = new Date();
         var date = String(now.getDate()).padStart(2, "0") + "/" +
@@ -601,7 +200,7 @@
       }
 
       function readNumber(id, fallback) {
-        var el = $(id);
+        var el = getEl(id);
         var value = el ? Number(el.value) : NaN;
         return isFinite(value) ? value : fallback;
       }
@@ -616,11 +215,16 @@
       function clearOutput() {
         app.counters = { unidades: 0, alertas: 0, ruido: 0 };
         setText("logSalida", "");
-        $("alertasVista").innerHTML =
-          '<div class="caska-alert ok">' +
-          '<div class="caska-alertTitle">Sin alertas cargadas</div>' +
-          '<div class="caska-alertMeta"><span>Ejecuta Historico 24h o inicia monitoreo.</span></div>' +
-          '</div>';
+
+        var alertasVista = getEl("alertasVista");
+        if (alertasVista) {
+          alertasVista.innerHTML =
+            '<div class="caska-alert ok">' +
+            '<div class="caska-alertTitle">Sin alertas cargadas</div>' +
+            '<div class="caska-alertMeta"><span>Ejecuta Historico 24h o inicia monitoreo.</span></div>' +
+            '</div>';
+        }
+
         renderMetrics();
         setStatus("salida limpia");
       }
@@ -636,7 +240,7 @@
         });
       }
 
-      async function getDevices(limit) {
+      function getDevices(limit) {
         return apiCall("Get", {
           typeName: "Device",
           search: {},
@@ -644,7 +248,7 @@
         });
       }
 
-      async function getStatusData(deviceId, diagnosticId, fromDate, toDate, limit) {
+      function getStatusData(deviceId, diagnosticId, fromDate, toDate, limit) {
         return apiCall("Get", {
           typeName: "StatusData",
           search: {
@@ -658,16 +262,19 @@
       }
 
       function normalizeReading(row) {
-        var value = Number(row.data);
         return {
           date: new Date(row.dateTime),
-          value: value,
+          value: Number(row.data),
           raw: row
         };
       }
 
       function validNumberReading(row) {
-        return row && isFinite(row.value);
+        return row && isFinite(row.value) && !isNaN(row.date.getTime());
+      }
+
+      function sortByDate(a, b) {
+        return a.date.getTime() - b.date.getTime();
       }
 
       function nearestReading(readings, date) {
@@ -746,21 +353,16 @@
             var drop = fuelReadings[i].value - fuelReadings[j].value;
 
             if (drop >= thresholdLiters) {
-              var ignition = nearestReading(ignitionReadings, fuelReadings[j].date);
-              var speed = nearestReading(speedReadings, fuelReadings[j].date);
-              var rpm = nearestReading(rpmReadings, fuelReadings[j].date);
-              var rebound = hasRebound(fuelReadings, j, fuelReadings[j].value, 20);
-
               var alert = {
                 device: device,
                 from: fuelReadings[i],
                 to: fuelReadings[j],
                 drop: drop,
                 minutes: minutes,
-                ignition: ignition,
-                speed: speed,
-                rpm: rpm,
-                rebound: rebound
+                ignition: nearestReading(ignitionReadings, fuelReadings[j].date),
+                speed: nearestReading(speedReadings, fuelReadings[j].date),
+                rpm: nearestReading(rpmReadings, fuelReadings[j].date),
+                rebound: hasRebound(fuelReadings, j, fuelReadings[j].value, 20)
               };
 
               alert.classification = classifyAlert(alert);
@@ -772,49 +374,6 @@
         }
 
         return alerts;
-      }
-
-      function addAlertsToView(alerts) {
-        var container = $("alertasVista");
-
-        if (!container) {
-          return;
-        }
-
-        if (!alerts.length && !container.querySelector(".caska-alertTitle[data-real='1']")) {
-          container.innerHTML =
-            '<div class="caska-alert ok">' +
-            '<div class="caska-alertTitle">Sin alertas en esta consulta</div>' +
-            '<div class="caska-alertMeta"><span>No se detectaron bajas que cumplan el umbral actual.</span></div>' +
-            '</div>';
-          return;
-        }
-
-        alerts.forEach(function (alert) {
-          if (container.querySelector(".caska-alert.ok")) {
-            container.innerHTML = "";
-          }
-
-          var isNoise = alert.classification === "Probable ruido de sensor";
-          var el = document.createElement("div");
-          el.className = "caska-alert" + (isNoise ? " ok" : "");
-          el.innerHTML =
-            '<div class="caska-alertTitle" data-real="1">' +
-            alert.classification + " en " + escapeHtml(alert.device.name || alert.device.id) +
-            '</div>' +
-            '<div class="caska-alertMeta">' +
-            '<span>Caida: <strong>' + alert.drop.toFixed(2) + ' L</strong></span>' +
-            '<span>Ventana: <strong>' + alert.minutes.toFixed(1) + ' min</strong></span>' +
-            '<span>De: <strong>' + alert.from.value.toFixed(1) + ' L</strong></span>' +
-            '<span>A: <strong>' + alert.to.value.toFixed(1) + ' L</strong></span>' +
-            '<span>Desde: ' + formatDateTime(alert.from.date) + '</span>' +
-            '<span>Hasta: ' + formatDateTime(alert.to.date) + '</span>' +
-            '<span>Ignicion: ' + formatContext(alert.ignition, "encendida", "apagada") + '</span>' +
-            '<span>Vel/RPM: ' + formatTelemetry(alert.speed, "km/h") + ' / ' + formatTelemetry(alert.rpm, "rpm") + '</span>' +
-            '</div>';
-
-          container.prepend(el);
-        });
       }
 
       function escapeHtml(value) {
@@ -841,6 +400,49 @@
         }
 
         return reading.value.toFixed(0) + " " + unit;
+      }
+
+      function addAlertsToView(alerts) {
+        var container = getEl("alertasVista");
+
+        if (!container) {
+          return;
+        }
+
+        if (!alerts.length && !container.querySelector(".caska-alertTitle[data-real='1']")) {
+          container.innerHTML =
+            '<div class="caska-alert ok">' +
+            '<div class="caska-alertTitle">Sin alertas en esta consulta</div>' +
+            '<div class="caska-alertMeta"><span>No se detectaron bajas que cumplan el umbral actual.</span></div>' +
+            '</div>';
+          return;
+        }
+
+        alerts.forEach(function (alert) {
+          if (container.querySelector(".caska-alert.ok")) {
+            container.innerHTML = "";
+          }
+
+          var isNoise = alert.classification === "Probable ruido de sensor";
+          var el = document.createElement("div");
+          el.className = "caska-alert" + (isNoise ? " ok" : "");
+          el.innerHTML =
+            '<div class="caska-alertTitle" data-real="1">' +
+            escapeHtml(alert.classification) + " en " + escapeHtml(alert.device.name || alert.device.id) +
+            '</div>' +
+            '<div class="caska-alertMeta">' +
+            '<span>Caida: <strong>' + alert.drop.toFixed(2) + ' L</strong></span>' +
+            '<span>Ventana: <strong>' + alert.minutes.toFixed(1) + ' min</strong></span>' +
+            '<span>De: <strong>' + alert.from.value.toFixed(1) + ' L</strong></span>' +
+            '<span>A: <strong>' + alert.to.value.toFixed(1) + ' L</strong></span>' +
+            '<span>Desde: ' + formatDateTime(alert.from.date) + '</span>' +
+            '<span>Hasta: ' + formatDateTime(alert.to.date) + '</span>' +
+            '<span>Ignicion: ' + formatContext(alert.ignition, "encendida", "apagada") + '</span>' +
+            '<span>Vel/RPM: ' + formatTelemetry(alert.speed, "km/h") + ' / ' + formatTelemetry(alert.rpm, "rpm") + '</span>' +
+            '</div>';
+
+          container.prepend(el);
+        });
       }
 
       async function analyzeRange(fromDate, toDate, label) {
@@ -893,10 +495,6 @@
         setStatus("analisis " + label + " terminado");
       }
 
-      function sortByDate(a, b) {
-        return a.date.getTime() - b.date.getTime();
-      }
-
       async function testApi() {
         try {
           var devices = await getDevices(10);
@@ -911,6 +509,7 @@
       function analyze24h() {
         var toDate = new Date();
         var fromDate = new Date(toDate.getTime() - 24 * 60 * 60 * 1000);
+
         analyzeRange(fromDate, toDate, "historico 24h").catch(function (error) {
           setStatus("error en historico 24h: " + error.message);
         });
@@ -952,11 +551,11 @@
       }
 
       function bindEvents() {
-        $("btnProbar").addEventListener("click", testApi);
-        $("btnHistorico").addEventListener("click", analyze24h);
-        $("btnIniciar").addEventListener("click", startMonitoring);
-        $("btnDetener").addEventListener("click", stopMonitoring);
-        $("btnLimpiar").addEventListener("click", clearOutput);
+        getEl("btnProbar").addEventListener("click", testApi);
+        getEl("btnHistorico").addEventListener("click", analyze24h);
+        getEl("btnIniciar").addEventListener("click", startMonitoring);
+        getEl("btnDetener").addEventListener("click", stopMonitoring);
+        getEl("btnLimpiar").addEventListener("click", clearOutput);
       }
 
       function initDom() {
@@ -994,18 +593,19 @@
         };
       }
 
+      window.geotab = window.geotab || {};
+      window.geotab.addin = window.geotab.addin || {};
+      window.geotab.addin.monitor_de_nivel_de_combustible = createAddIn;
+      window.geotab.addin.caskaFuelDiagnostics = createAddIn;
+      window.geotab.addin.caska_fuel_diagnostics = createAddIn;
+      window.geotab.addin.caskaGeotabFuelAlerts = createAddIn;
+      window.geotab.addin.caska_geotab_fuel_alerts = createAddIn;
+
       if (document.readyState === "loading") {
         document.addEventListener("DOMContentLoaded", initDom);
       } else {
         initDom();
       }
-
-      window.geotab = window.geotab || {};
-      window.geotab.addin = window.geotab.addin || {};
-      window.geotab.addin.caskaFuelDiagnostics = createAddIn;
-      window.geotab.addin.caska_fuel_diagnostics = createAddIn;
-      window.geotab.addin.caskaGeotabFuelAlerts = createAddIn;
-      window.geotab.addin.caska_geotab_fuel_alerts = createAddIn;
     }());
   </script>
 </body>

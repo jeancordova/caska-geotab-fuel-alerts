@@ -1,10 +1,10 @@
 {
   "name": "Monitor de Nivel de Combustible",
   "supportEmail": "jeancordova@gmail.com",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "items": [
     {
-      "url": "https://jeancordova.github.io/caska-geotab-fuel-alerts/index.html?v=13",
+      "url": "https://jeancordova.github.io/caska-geotab-fuel-alerts/index.html?v=14",
       "path": "/",
       "category": "AddIns",
       "menuName": {
